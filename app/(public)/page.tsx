@@ -1,9 +1,50 @@
-export default function Home() {
-    return (
-        <div className="w-full h-screen flex justify-center items-center flex-col gap-4">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgTI2hzQjkjhHQCVdLwHdG4JP8r5aJ9LS64ju3Qq-1vvWGGkmBhI3ZMQP9&s=10" alt="" 
-            className="rounded-4xl w-60"/>
-            <p className="text-white font-semibold text-2xl ">Saya Akan Lawan!!</p>
-        </div>
-    )
+import type { Metadata } from "next";
+import Hero from "@/component/landing/Hero";
+import CollaborationSection from "@/component/landing/CollaborationSection";
+import ChallengeSection from "@/component/landing/ChallengeSection";
+import IncentiveSection from "@/component/landing/IncentiveSection";
+
+export const metadata: Metadata = {
+  title: "OpenNova — Platform Inovasi Terbuka untuk Solver Indonesia",
+  description:
+    "OpenNova menghubungkan solver terbaik Indonesia dengan tantangan nyata dari perusahaan-perusahaan terkemuka. Temukan challenge, kirim solusi inovatif, dan raih hadiah hingga ratusan juta rupiah.",
+  keywords: [
+    "inovasi",
+    "challenge",
+    "solver",
+    "hackathon",
+    "hadiah",
+    "kolaborasi",
+    "startup",
+    "indonesia",
+  ],
+  openGraph: {
+    title: "OpenNova — Platform Inovasi Terbuka",
+    description:
+      "Bergabunglah dengan ribuan solver Indonesia dan selesaikan tantangan nyata dari perusahaan-perusahaan terkemuka.",
+    type: "website",
+    locale: "id_ID",
+  },
+};
+
+/**
+ * OpenNova Solver Landing Page  (/  route)
+ *
+ * Sections (in order):
+ *  1. Hero            — dominant visual thesis, CTAs, partner strip
+ *  2. Collaboration   — how the marketplace works (2-col explainer)
+ *  3. Challenges      — live challenge card grid (browse surface)
+ *  4. Incentives      — financial, certificate, and partnership rewards
+ *
+ * Navbar and Footer are rendered by the parent (public) layout.
+ */
+export default function LandingPage() {
+  return (
+    <>
+      <Hero />
+      <CollaborationSection />
+      <ChallengeSection />
+      <IncentiveSection />
+    </>
+  );
 }
