@@ -128,9 +128,8 @@ export default function Hero() {
 
         {/* Description */}
         <p className="mt-7 max-w-[660px] text-base md:text-[1.05rem] text-gray-500 leading-[1.65]">
-          OpenNova menghubungkan solver terbaik Indonesia dengan tantangan nyata dari
-          perusahaan-perusahaan terkemuka. Temukan challenge, kirim solusi inovatif,
-          dan raih hadiah serta peluang kolaborasi.
+          500+ perusahaan menghadirkan tantangan nyata. Saatnya menciptakan inovasi terbaik
+          anda dengan sains, teknologi, dan bisnis untuk menjawab masalah mereka.
         </p>
 
         {/* CTA buttons */}

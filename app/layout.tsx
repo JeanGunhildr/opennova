@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: "Opennova",
   description: "",
   icons: {
-    icon: "/icon.png",
+    icon: "/icon.svg",
   },
 };
 

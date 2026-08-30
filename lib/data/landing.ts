@@ -93,21 +93,21 @@ export const incentives: Incentive[] = [
     id: "inc-1",
     title: "Hadiah Finansial",
     description:
-      "Raih hadiah uang tunai hingga ratusan juta rupiah untuk solusi inovatif terbaik yang lolos seleksi ketat.",
+      "Bentuk apresiasi berupa hadiah uang tunai bagi inovator yang berhasil memberikan solusi terbaik untuk challenge.",
     featured: true,
   },
   {
     id: "inc-2",
     title: "Sertifikat Resmi",
     description:
-      "Dapatkan sertifikat pengakuan resmi dari perusahaan mitra dan OpenNova untuk memperkuat portofolio profesional Anda.",
+      "Sertifikat penghargaan resmi dari perusahaan atas kontribusidan inovasi yang diberikan selama challenge.",
     featured: false,
   },
   {
     id: "inc-3",
     title: "Kerja Sama",
     description:
-      "Peluang kolaborasi langsung dengan perusahaan mitra untuk mengembangkan solusi Anda ke tahap implementasi nyata.",
+      "Solusi yang terpilih dapat diterapkan dalam kebutuhan nyata perusahaan melalui kerja sama langsung.",
     featured: false,
   },
 ];
