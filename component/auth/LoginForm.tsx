@@ -1,10 +1,13 @@
 ﻿"use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation"
+ 
 import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
 import { OpenNovaLogo } from "@/component/landing/Logo";
 import type { AuthView } from "./AuthModal";
+import { supabase } from "@/lib/supabase/client";
 
 interface LoginFormProps {
   onNavigate: (view: AuthView) => void;
@@ -25,7 +28,54 @@ function EyeIcon({ open }: { open: boolean }) {
 }
 
 export default function LoginForm({ onNavigate }: LoginFormProps) {
+  const router = useRouter();
   const [showPass, setShowPass] = useState(false);
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [error, setError] = useState<string>("");
+
+async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
+  e.preventDefault();
+
+  console.log("=== HANDLE LOGIN DIPANGGIL ===");
+  console.log("Email:", email);
+  console.log("Password:", password);
+
+  setError("");
+
+  try {
+    console.log("Mencoba login ke Supabase...");
+
+    const { data, error: signInError } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+    console.log("Response Supabase:", data);
+    console.log("Error Supabase:", signInError);
+
+    if (signInError) {
+      setError(signInError.message);
+      return;
+    }
+
+    if (data?.session) {
+      console.log("=== LOGIN SUKSES ===");
+      console.log("Session:", data.session);
+
+      window.location.href = "/hahaha";
+    } else {
+      console.log("Session tidak ditemukan");
+
+      setError("Terjadi kesalahan, sesi tidak ditemukan.");
+    }
+  } catch (err) {
+    console.error("ERROR:", err);
+    setError("Terjadi kesalahan koneksi jaringan.");
+  }
+}
+
 
   return (
     <>
@@ -41,24 +91,8 @@ export default function LoginForm({ onNavigate }: LoginFormProps) {
       </div>
 
       {/* Content */}
-      <div className="px-9 pb-4">
+      <form className="px-9 pb-4" onSubmit={handleLogin}>
         {/* Social login */}
-        <div className="flex gap-3 mb-7">
-          <button
-            type="button"
-            aria-label="Masuk dengan Google"
-            className="flex flex-1 items-center justify-center h-[46px] rounded-full border border-gray-300 bg-white hover:bg-gray-50 transition-colors"
-          >
-            <FcGoogle size={20} />
-          </button>
-          <button
-            type="button"
-            aria-label="Masuk dengan Apple"
-            className="flex flex-1 items-center justify-center h-[46px] rounded-full border border-gray-300 bg-white hover:bg-gray-50 transition-colors"
-          >
-            <FaApple size={20} className="text-gray-900" />
-          </button>
-        </div>
 
         {/* Divider */}
         <div className="flex items-center gap-3 mb-6">
@@ -74,6 +108,8 @@ export default function LoginForm({ onNavigate }: LoginFormProps) {
           </label>
           <input
             id="login-email"
+            value={email}
+            onChange={(e) => {setEmail(e.target.value)}}
             type="email"
             placeholder="Masukkan email.."
             className="w-full h-[46px] rounded-full border border-[#E5E7EB] bg-[#F0F3F6] px-4 text-[14px] text-gray-900 placeholder:text-[#999999] outline-none focus:border-[#E9201E] focus:bg-white focus:ring-2 focus:ring-[#E9201E]/20 transition-all"
@@ -88,6 +124,8 @@ export default function LoginForm({ onNavigate }: LoginFormProps) {
           <div className="relative">
             <input
               id="login-password"
+              value={password}
+              onChange={(e) => {setPassword(e.target.value)}}
               type={showPass ? "text" : "password"}
               placeholder="Masukkan password.."
               className="w-full h-[46px] rounded-full border border-[#E5E7EB] bg-[#F0F3F6] px-4 pr-12 text-[14px] text-gray-900 placeholder:text-[#999999] outline-none focus:border-[#E9201E] focus:bg-white focus:ring-2 focus:ring-[#E9201E]/20 transition-all"
@@ -119,19 +157,19 @@ export default function LoginForm({ onNavigate }: LoginFormProps) {
 
         {/* CTA */}
         <button
-          type="button"
+          type="submit"
           className="w-full h-[46px] rounded-full bg-[#E9201E] hover:bg-[#D91817] active:bg-[#B91413] text-white text-[15px] font-semibold transition-colors"
         >
           Masuk
         </button>
-      </div>
+      </form>
 
       {/* Footer */}
       <div className="px-9 pb-6 pt-1 flex justify-center">
         <p className="text-[14px] text-[#7D7D7D]">
           Belum punya akun?{" "}
           <button
-            type="button"
+            type="submit"
             onClick={() => onNavigate("REGISTER_1")}
             className="text-[#E9201E] hover:text-[#D91817] font-semibold transition-colors"
           >

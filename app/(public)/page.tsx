@@ -3,6 +3,7 @@ import Hero from "@/component/landing/Hero";
 import CollaborationSection from "@/component/landing/CollaborationSection";
 import ChallengeSection from "@/component/landing/ChallengeSection";
 import IncentiveSection from "@/component/landing/IncentiveSection";
+import { supabase } from "@/lib/supabase/client";
 
 export const metadata: Metadata = {
   title: "OpenNova — Platform Inovasi Terbuka untuk Solver Indonesia",
@@ -38,9 +39,27 @@ export const metadata: Metadata = {
  *
  * Navbar and Footer are rendered by the parent (public) layout.
  */
-export default function LandingPage() {
+
+
+export default async function LandingPage() {
+  const {data, error} = await supabase
+    .from("profiles")
+    .select("*")
+
+  if(error) {
+    console.error(error)
+    return <p>Gagal Mengambil Data Dari Database</p>
+  }
+
+  console.log(data);
+
   return (
     <>
+      {data.map((d) => (
+        <div key={d.id}>
+          <p>{d.name}</p>
+        </div>
+      ))}
       <Hero />
       <CollaborationSection />
       <ChallengeSection />
