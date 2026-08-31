@@ -99,21 +99,38 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
         </ul>
       </nav>
 
-      {/* Profile block */}
-      <div className="mt-6 flex items-center gap-3 border border-gray-300 rounded-[10px] p-2.5 bg-white">
-        <div className="flex-shrink-0 w-11 h-11 rounded-full bg-primary-500 flex items-center justify-center text-white text-[13px] font-bold select-none">
-          {MOCK_USER.initials}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[14px] font-semibold text-gray-900 truncate leading-tight">
-            {MOCK_USER.name}
-          </p>
-          <p className="text-[12px] text-gray-500 truncate leading-tight mt-0.5">
-            {MOCK_USER.email}
-          </p>
-        </div>
-        <ChevronRight size={18} className="text-gray-400 flex-shrink-0" strokeWidth={1.8} />
-      </div>
+      {/* Profile block — links to /solver/profile */}
+      {(() => {
+        const isProfileActive = pathname === "/solver/profile" || pathname.startsWith("/solver/profile");
+        return (
+          <Link
+            href="/solver/profile"
+            className={[
+              "mt-6 flex items-center gap-3 border rounded-[10px] p-2.5 transition-colors cursor-pointer",
+              isProfileActive
+                ? "bg-secondary-100 border-secondary-200"
+                : "bg-white border-gray-300 hover:bg-gray-100/80",
+            ].join(" ")}
+          >
+            <div className="flex-shrink-0 w-11 h-11 rounded-full bg-primary-500 flex items-center justify-center text-white text-[13px] font-bold select-none">
+              {MOCK_USER.initials}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[14px] font-semibold text-gray-900 truncate leading-tight">
+                {MOCK_USER.name}
+              </p>
+              <p className="text-[12px] text-gray-500 truncate leading-tight mt-0.5">
+                {MOCK_USER.email}
+              </p>
+            </div>
+            <ChevronRight
+              size={18}
+              className={isProfileActive ? "text-primary-500 flex-shrink-0" : "text-gray-400 flex-shrink-0"}
+              strokeWidth={1.8}
+            />
+          </Link>
+        );
+      })()}
     </div>
   );
 }
