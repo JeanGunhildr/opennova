@@ -251,7 +251,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
         </ul>
       </nav>
 
-      {/* Profile block */}
+       {/* Profile block */}
       <div className="mt-6 flex items-center gap-3 border border-gray-300 rounded-[10px] p-2.5 bg-white">
         {/* Avatar */}
         <div className="flex-shrink-0 w-11 h-11 rounded-full bg-primary-500 flex items-center justify-center text-white text-[13px] font-bold select-none">
