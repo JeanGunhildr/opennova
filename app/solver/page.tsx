@@ -4,11 +4,17 @@ import ChallengeCard from "@/component/dashboard/ChallengeCard";
 import JelajahFilters from "@/component/dashboard/JelajahFilters";
 
 import { dashboardChallenges } from "@/lib/data/dashboard";
-import { getCurrentUser } from "@/lib/supabase/user";
 import { getCurrentProfile } from "@/lib/supabase/profile";
+import { getCurrentUser } from "@/lib/supabase/user";
+import { redirect } from "next/navigation";
 
 export default async function JelajahPage() {
-  const user = await getCurrentProfile();
+  const user = await getCurrentUser();
+  const profile = await getCurrentProfile();
+
+  if(!user) {
+    redirect('/');
+  }
 
   return (
     <div className="px-6 lg:px-10 py-8 lg:py-9 max-w-[1160px]">
@@ -22,7 +28,7 @@ export default async function JelajahPage() {
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5 mb-0">
         <div>
           <h1 className="text-[36px] lg:text-[40px] font-bold text-gray-900 tracking-[-0.025em] leading-[1.1]">
-            Selamat datang, {user?.full_name ? user.full_name.split(" ")[0] : ""}
+            Selamat datang, {profile?.full_name ? profile.full_name.split(" ")[0] : ""}
           </h1>
 
           <p className="text-[16px] text-gray-500 mt-2 max-w-[520px] leading-[1.5]">

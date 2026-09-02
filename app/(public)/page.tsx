@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-
-import { redirect } from "next/navigation";
-
 import Hero from "@/component/landing/Hero";
 import CollaborationSection from "@/component/landing/CollaborationSection";
 import ChallengeSection from "@/component/landing/ChallengeSection";
 import IncentiveSection from "@/component/landing/IncentiveSection";
 
+import { redirect } from "next/navigation";
+import { getCurrentRole, getCurrentUser } from "@/lib/supabase/user";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUser } from "@/lib/supabase/user";
+import { getCurrentProfile } from "@/lib/supabase/profile";
 
 export const metadata: Metadata = {
   title: "OpenNova — Platform Inovasi Terbuka untuk Solver Indonesia",
@@ -39,7 +38,14 @@ export const metadata: Metadata = {
 };
 
 export default async function LandingPage() {
-  const user = getCurrentUser();
+  const user = await getCurrentUser();
+  const profile = await getCurrentProfile();
+  // console.log(role);
+  if (profile?.role == "solver") {
+    redirect("/solver");
+  } else if (profile?.role == "seeker") {
+    redirect("seeker");
+  }
 
   return (
     <>
