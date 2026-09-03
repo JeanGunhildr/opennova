@@ -135,7 +135,7 @@ export default function WorkspacePage() {
 
       {/* ── Tabs ──────────────────────────────────────── */}
       <div className="flex flex-col w-full mt-4">
-        <div className="flex items-stretch gap-8 lg:gap-9 border-b border-gray-200 h-[52px] overflow-x-auto scrollbar-hidden">
+        <div className="flex items-stretch gap-8 lg:gap-9 border-b border-gray-200 h-[52px] overflow-x-auto overflow-y-hidden scrollbar-hidden">
           {TABS.map(({ id, label, count }) => {
             const isActive = activeTab === id;
             return (
@@ -160,7 +160,7 @@ export default function WorkspacePage() {
                   {count}
                 </span>
                 {isActive && (
-                  <span className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-primary-500" />
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary-500" />
                 )}
               </button>
             );
