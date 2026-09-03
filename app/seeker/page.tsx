@@ -2,8 +2,21 @@
 import DashboardSummaryGrid from "@/component/seeker/dashboard/DashboardSummaryGrid";
 import ActiveChallengePanel from "@/component/seeker/dashboard/ActiveChallengePanel";
 import AgendaPanel from "@/component/seeker/dashboard/AgendaPanel";
+import { getCurrentUser } from "@/lib/supabase/user";
+import { getCurrentProfile } from "@/lib/supabase/profile";
+import { redirect } from "next/navigation";
 
-export default function SeekerDashboardPage() {
+export default async function SeekerDashboardPage() {
+    const  user  = await getCurrentUser();
+    if(!user) {
+        redirect('/');
+    } 
+
+    const profile = await getCurrentProfile();
+    if (profile?.role == 'solver') {
+        redirect('/solver');
+    } 
+
   return (
     <div
       className="min-h-screen pt-14 lg:pt-0"
