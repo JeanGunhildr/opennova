@@ -33,13 +33,14 @@ export default function ChallengeHeader({ eyebrow = "Manajemen Challenge" }: Cha
 
       {/* CTA */}
       <div className="flex items-start flex-shrink-0 pt-1">
-        <button
+        <a
           type="button"
           className="inline-flex items-center gap-2 h-12 px-5 rounded-full text-white text-[15px] font-semibold bg-[#E30000] hover:bg-[#CC0000] transition-colors"
+          href="/seeker/challenges/new"
         >
           <Plus size={18} strokeWidth={2.2} />
           Buat Challenge Baru
-        </button>
+        </a>
       </div>
     </div>
   );
