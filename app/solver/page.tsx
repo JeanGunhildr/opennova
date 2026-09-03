@@ -10,10 +10,14 @@ import { redirect } from "next/navigation";
 
 export default async function JelajahPage() {
   const user = await getCurrentUser();
-  const profile = await getCurrentProfile();
 
   if(!user) {
     redirect('/');
+  } 
+  const profile = await getCurrentProfile();
+  
+  if (profile?.role == 'seeker') {
+    redirect ('/seeker');
   }
 
   return (
