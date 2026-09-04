@@ -112,7 +112,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
         .from("profiles")
         .select("full_name, role")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
       console.log("PROFILE:", profileData);
       console.log("PROFILE ERROR:", profileError);

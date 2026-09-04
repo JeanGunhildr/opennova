@@ -1,54 +1,28 @@
-﻿// ─────────────────────────────────────────────────────────
-// OpenNova — Tim Anda (Your Team) mock data
+// ─────────────────────────────────────────────────────────
+// OpenNova — Tim Anda (Your Team) types
+// Re-exports from server action types for convenience in client components.
 // ─────────────────────────────────────────────────────────
 
 export type TeamRole = "leader" | "member";
 
+/** Shape of a team as used in UI components. */
 export interface Team {
   id: string;
   name: string;
+  /** Two-letter initials derived from the team name. */
   initials: string;
   role: TeamRole;
-  memberCount: number;
-  lastActivity: string;
-  inviteCode: string;
+  member_count: number;
+  join_code: string;
+  is_locked: boolean;
+  captain_id: string;
 }
 
-export const mockTeams: Team[] = [
-  {
-    id: "t-1",
-    name: "Inovasi Nusantara",
-    initials: "IN",
-    role: "leader",
-    memberCount: 4,
-    lastActivity: "2 jam lalu",
-    inviteCode: "INN247",
-  },
-  {
-    id: "t-2",
-    name: "Tim Solusi Energi",
-    initials: "SE",
-    role: "leader",
-    memberCount: 3,
-    lastActivity: "1 hari lalu",
-    inviteCode: "TSE891",
-  },
-  {
-    id: "t-3",
-    name: "Akselerasi Digital",
-    initials: "AD",
-    role: "member",
-    memberCount: 5,
-    lastActivity: "3 hari lalu",
-    inviteCode: "AKD553",
-  },
-  {
-    id: "t-4",
-    name: "Green Future Lab",
-    initials: "GF",
-    role: "member",
-    memberCount: 6,
-    lastActivity: "1 minggu lalu",
-    inviteCode: "GFL774",
-  },
-];
+/** Derive two-letter initials from a team name. */
+export function getTeamInitials(name: string): string {
+  const words = name.trim().split(/\s+/);
+  if (words.length === 1) {
+    return words[0].slice(0, 2).toUpperCase();
+  }
+  return (words[0][0] + words[1][0]).toUpperCase();
+}

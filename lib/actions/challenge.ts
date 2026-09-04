@@ -309,3 +309,158 @@ export async function createChallengeAction(
     };
   }
 }
+
+export interface JoinChallengeResult {
+  success: boolean;
+  entryId?: string;
+  error?: string;
+}
+
+/**
+ * Action for solvers to join a challenge (individual or team).
+ * Automatically locks the team and snapshots active members into challenge_entry_members.
+ */
+export async function joinChallengeAction(
+  challengeId: string,
+  participationType: "individual" | "team",
+  teamId?: string
+): Promise<JoinChallengeResult> {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: "Sesi telah berakhir. Silakan login kembali." };
+    }
+
+    if (participationType === "individual") {
+      // 1. Cek pendaftaran
+      const { data: existing } = await supabase
+        .from("challenge_entries")
+        .select("id")
+        .eq("challenge_id", challengeId)
+        .eq("solver_id", user.id)
+        .maybeSingle();
+
+      if (existing) {
+        return { success: false, error: "Anda sudah terdaftar di challenge ini." };
+      }
+
+      // 2. Insert challenge_entry
+      const { data: entry, error: entryError } = await supabase
+        .from("challenge_entries")
+        .insert({
+          challenge_id: challengeId,
+          participation_type: "individual",
+          solver_id: user.id,
+          team_id: null,
+          team_name_snapshot: null,
+          status: "registered",
+        })
+        .select("id")
+        .single();
+
+      if (entryError || !entry) {
+        return { success: false, error: "Gagal mendaftar challenge." };
+      }
+
+      // 3. Snapshot peserta individu
+      await supabase.from("challenge_entry_members").insert({
+        entry_id: entry.id,
+        user_id: user.id,
+        role_snapshot: "individual",
+      });
+
+      revalidatePath(`/solver/challenge/${challengeId}`);
+      revalidatePath("/solver/workspace");
+
+      return { success: true, entryId: entry.id };
+    } else {
+      // Participasi Tim
+      if (!teamId) {
+        return { success: false, error: "Tim wajib dipilih untuk partisipasi tim." };
+      }
+
+      const { data: team } = await supabase
+        .from("teams")
+        .select("id, name, captain_id, is_active")
+        .eq("id", teamId)
+        .maybeSingle();
+
+      if (!team || !team.is_active) {
+        return { success: false, error: "Tim tidak aktif atau tidak ditemukan." };
+      }
+
+      const { data: existingTeamEntry } = await supabase
+        .from("challenge_entries")
+        .select("id")
+        .eq("challenge_id", challengeId)
+        .eq("team_id", teamId)
+        .maybeSingle();
+
+      if (existingTeamEntry) {
+        return { success: false, error: "Tim Anda sudah terdaftar di challenge ini." };
+      }
+
+      // 1. Insert challenge_entry dengan team_name_snapshot
+      const { data: entry, error: entryError } = await supabase
+        .from("challenge_entries")
+        .insert({
+          challenge_id: challengeId,
+          participation_type: "team",
+          solver_id: null,
+          team_id: teamId,
+          team_name_snapshot: team.name,
+          status: "registered",
+        })
+        .select("id")
+        .single();
+
+      if (entryError || !entry) {
+        return { success: false, error: "Gagal mendaftar challenge bersama tim." };
+      }
+
+      // 2. Fiksasi tim secara otomatis karena mendaftar lomba
+      await supabase
+        .from("teams")
+        .update({ is_locked: true })
+        .eq("id", teamId);
+
+      // 3. Snapshot semua anggota aktif saat ini ke challenge_entry_members
+      const { data: activeMembers } = await supabase
+        .from("team_members")
+        .select("user_id")
+        .eq("team_id", teamId)
+        .eq("status", "active");
+
+      const membersToInsert = (activeMembers ?? []).map((m) => ({
+        entry_id: entry.id,
+        user_id: m.user_id,
+        role_snapshot: m.user_id === team.captain_id ? "captain" : "member",
+      }));
+
+      if (membersToInsert.length > 0) {
+        const { error: snapError } = await supabase
+          .from("challenge_entry_members")
+          .insert(membersToInsert);
+
+        if (snapError) {
+          console.error("Gagal simpan snapshot anggota:", snapError);
+        }
+      }
+
+      revalidatePath(`/solver/challenge/${challengeId}`);
+      revalidatePath("/solver/workspace");
+      revalidatePath("/solver/team");
+
+      return { success: true, entryId: entry.id };
+    }
+  } catch (error) {
+    console.error("Unhandled error in joinChallengeAction:", error);
+    return { success: false, error: "Terjadi kesalahan pada server." };
+  }
+}
+

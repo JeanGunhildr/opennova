@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import type { FormEvent } from "react";
@@ -20,6 +20,7 @@ interface RegisterData {
   confirmPassword: string;
   phone: string;
   birthday: string;
+  institution: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -330,6 +331,7 @@ function Step2({
 
       const phone = formData.get("phone");
       const birthday = formData.get("birthday");
+      const institution = formData.get("institution");
 
       if (
         typeof phone !== "string" ||
@@ -346,6 +348,7 @@ function Step2({
         ...data,
         phone: phone.trim(),
         birthday,
+        institution: typeof institution === "string" ? institution.trim() : "",
       };
 
       // Simpan ke state
@@ -388,7 +391,7 @@ function Step2({
         return;
       }
 
-      // 8. Simpan profile
+      // 8. Simpan profile utama
       const { error: profileError } = await supabase.from("profiles").insert({
         id: authData.user.id,
         role: "solver",
@@ -405,6 +408,19 @@ function Step2({
         setError("Akun berhasil dibuat, tetapi profile gagal disimpan.");
 
         return;
+      }
+
+      // 8b. Simpan solver_profile
+      const { error: solverProfileError } = await supabase
+        .from("solver_profiles")
+        .insert({
+          user_id: authData.user.id,
+          bio: null,
+          institution: finalData.institution || null,
+        });
+
+      if (solverProfileError) {
+        console.error("Solver profile error:", solverProfileError);
       }
 
       // 10. Berhasil
@@ -484,6 +500,22 @@ function Step2({
           </div>
         </div>
 
+        {/* Institusi / Universitas */}
+        <div>
+          <label htmlFor="reg-institution" className={labelCls}>
+            Institusi / Universitas <span className="text-gray-400 font-normal">(opsional)</span>
+          </label>
+
+          <input
+            id="reg-institution"
+            name="institution"
+            type="text"
+            defaultValue={data.institution}
+            placeholder="Contoh: Universitas Indonesia"
+            className={inputCls}
+          />
+        </div>
+
         {/* Error */}
         {error && <p className="text-sm text-red-500">{error}</p>}
 
@@ -524,6 +556,7 @@ export default function RegisterFlow({ view, onNavigate }: RegisterFlowProps) {
     confirmPassword: "",
     phone: "",
     birthday: "",
+    institution: "",
   });
 
   if (view === "REGISTER_2") {

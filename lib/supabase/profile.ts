@@ -15,7 +15,7 @@ export async function getCurrentProfile() {
     .from("profiles")
     .select("full_name, role")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error("Get profile error:", error);

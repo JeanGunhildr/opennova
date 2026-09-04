@@ -1,18 +1,24 @@
-﻿"use client";
+"use client";
 
 import { useEffect } from "react";
-import { TriangleAlert } from "lucide-react";
+import { TriangleAlert, LogOut } from "lucide-react";
+
+type ModalMode = "delete" | "leave";
 
 interface DeleteTeamModalProps {
   isOpen: boolean;
+  mode: ModalMode;
   teamName: string;
+  isLocked?: boolean;
   onClose: () => void;
   onConfirm: () => void;
 }
 
 export default function DeleteTeamModal({
   isOpen,
+  mode,
   teamName,
+  isLocked = false,
   onClose,
   onConfirm,
 }: DeleteTeamModalProps) {
@@ -28,11 +34,26 @@ export default function DeleteTeamModal({
 
   if (!isOpen) return null;
 
+  const isDelete = mode === "delete";
+
+  const title = isDelete ? "Bubarkan Tim?" : "Keluar dari Tim?";
+  const description = isDelete
+    ? "Tim akan dinonaktifkan dan tidak akan muncul lagi di daftar tim Anda. Data riwayat dan sertifikat tetap tersimpan."
+    : "Anda akan keluar dari tim ini. Anda masih bisa bergabung kembali dengan kode undangan selama tim tidak penuh atau terkunci.";
+  const confirmLabel = isDelete ? "Bubarkan Tim" : "Keluar Tim";
+  const Icon = isDelete ? TriangleAlert : LogOut;
+  const iconBg = isDelete ? "bg-primary-100" : "bg-amber-100";
+  const iconColor = isDelete ? "text-primary-500" : "text-amber-600";
+  const confirmBg = isDelete
+    ? "bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white"
+    : "bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white";
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.42)", backdropFilter: "blur(4px)" }}
       role="presentation"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
         className="w-full max-w-[440px] bg-white border border-gray-200 rounded-[20px] p-7 text-center shadow-[0_24px_70px_rgba(0,0,0,0.20)]"
@@ -40,9 +61,9 @@ export default function DeleteTeamModal({
         aria-modal="true"
         aria-labelledby="delete-modal-title"
       >
-        {/* Warning icon */}
-        <div className="mx-auto w-14 h-14 rounded-full bg-primary-100 flex items-center justify-center">
-          <TriangleAlert size={26} className="text-primary-500" strokeWidth={1.8} />
+        {/* Icon */}
+        <div className={`mx-auto w-14 h-14 rounded-full flex items-center justify-center ${iconBg}`}>
+          <Icon size={26} className={iconColor} strokeWidth={1.8} />
         </div>
 
         {/* Title */}
@@ -50,13 +71,20 @@ export default function DeleteTeamModal({
           id="delete-modal-title"
           className="text-[22px] font-bold text-gray-900 mt-[18px] leading-tight"
         >
-          Hapus Tim?
+          {title}
         </h2>
 
         {/* Description */}
         <p className="text-[14px] text-gray-600 leading-[1.55] mt-2 max-w-[340px] mx-auto">
-          Tim dan informasi terkait akan dihapus. Tindakan ini tidak dapat dibatalkan.
+          {description}
         </p>
+
+        {/* Locked warning */}
+        {isLocked && (
+          <p className="text-[13px] text-amber-700 bg-amber-50 border border-amber-200 rounded-[10px] px-3 py-2 mt-3 max-w-[340px] mx-auto">
+            ⚠️ Tim ini sedang terkunci karena mengikuti challenge. Tindakan ini tidak dapat dilakukan.
+          </p>
+        )}
 
         {/* Team reference pill */}
         <div className="inline-flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-[10px] px-3.5 py-2.5 mt-4">
@@ -75,12 +103,16 @@ export default function DeleteTeamModal({
           <button
             type="button"
             onClick={onConfirm}
-            className="h-11 rounded-full bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-[15px] font-semibold text-white transition-colors"
+            disabled={isLocked}
+            className={[
+              "h-11 rounded-full text-[15px] font-semibold transition-colors",
+              isLocked ? "opacity-40 cursor-not-allowed bg-gray-300 text-gray-600" : confirmBg,
+            ].join(" ")}
           >
-            Hapus Tim
+            {confirmLabel}
           </button>
         </div>
       </div>
     </div>
   );
-}
+}

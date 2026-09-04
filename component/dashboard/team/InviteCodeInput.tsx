@@ -1,13 +1,14 @@
-﻿"use client";
+"use client";
 
 import { useRef } from "react";
 
 interface InviteCodeInputProps {
   code: string;
   onChange: (code: string) => void;
+  disabled?: boolean;
 }
 
-export default function InviteCodeInput({ code, onChange }: InviteCodeInputProps) {
+export default function InviteCodeInput({ code, onChange, disabled = false }: InviteCodeInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -17,8 +18,8 @@ export default function InviteCodeInput({ code, onChange }: InviteCodeInputProps
 
   return (
     <div
-      className="relative cursor-text"
-      onClick={() => inputRef.current?.focus()}
+      className={["relative", disabled ? "cursor-not-allowed opacity-50" : "cursor-text"].join(" ")}
+      onClick={() => { if (!disabled) inputRef.current?.focus(); }}
     >
       {/* Invisible real input — captures keyboard input */}
       <input
@@ -27,8 +28,9 @@ export default function InviteCodeInput({ code, onChange }: InviteCodeInputProps
         value={code}
         maxLength={6}
         onChange={handleChange}
+        disabled={disabled}
         aria-label="Kode undangan 6 karakter"
-        className="absolute inset-0 w-full h-full opacity-0 cursor-text caret-transparent"
+        className="absolute inset-0 w-full h-full opacity-0 cursor-text caret-transparent disabled:cursor-not-allowed"
       />
 
       {/* Visual slots */}
@@ -41,7 +43,9 @@ export default function InviteCodeInput({ code, onChange }: InviteCodeInputProps
               key={i}
               className={[
                 "h-[70px] rounded-[10px] border flex items-center justify-center text-[26px] font-semibold transition-colors select-none",
-                isFilled
+                disabled
+                  ? "border-gray-200 bg-gray-50 text-gray-300"
+                  : isFilled
                   ? "border-primary-500 bg-secondary-50 text-primary-500"
                   : "border-gray-300 bg-white text-gray-300",
               ].join(" ")}
@@ -53,4 +57,4 @@ export default function InviteCodeInput({ code, onChange }: InviteCodeInputProps
       </div>
     </div>
   );
-}
+}
