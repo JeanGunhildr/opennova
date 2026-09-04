@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { Trash2 } from "lucide-react";
 
 interface DiscardDataModalProps {
@@ -19,14 +19,14 @@ export default function DiscardDataModal({ onClose, onConfirm }: DiscardDataModa
         </div>
         <h2 className="mt-[18px] font-bold text-white" style={{ fontSize: "21px" }}>Hapus Data Challenge?</h2>
         <p className="mt-2" style={{ fontSize: "13px", lineHeight: "1.55", color: "#A4A4A4", maxWidth: "360px" }}>
-          Seluruh data yang sudah Anda masukkan akan dihapus dan Anda akan kembali ke daftar Challenge. Tindakan ini tidak dapat dibatalkan.
+          Seluruh data yang sudah Anda masukkan akan dihapus. Anda tetap berada di halaman ini dan bisa mengisi ulang form dari awal.
         </p>
         <div className="grid grid-cols-2 gap-[10px] mt-6 w-full">
-          <button onClick={onClose} className="inline-flex items-center justify-center rounded-full text-white text-[14px] font-semibold transition-colors"
+          <button type="button" onClick={onClose} className="inline-flex items-center justify-center rounded-full text-white text-[14px] font-semibold transition-colors"
             style={{ height: "44px", background: "#232323", border: "1px solid #5C5C5C" }}
             onMouseEnter={e => (e.currentTarget.style.background = "#373737")}
             onMouseLeave={e => (e.currentTarget.style.background = "#232323")}>Batal</button>
-          <button onClick={onConfirm} className="inline-flex items-center justify-center rounded-full text-white text-[14px] font-semibold bg-[#E30000] hover:bg-[#CC0000] transition-colors"
+          <button type="button" onClick={onConfirm} className="inline-flex items-center justify-center rounded-full text-white text-[14px] font-semibold bg-[#E30000] hover:bg-[#CC0000] transition-colors"
             style={{ height: "44px" }}>Hapus Data</button>
         </div>
       </div>

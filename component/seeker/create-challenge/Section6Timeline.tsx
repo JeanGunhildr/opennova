@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { ArrowRight } from "lucide-react";
 
@@ -75,6 +75,9 @@ export default function Section6Timeline({
       [field]: val,
     });
   }
+
+  // Tanggal hari ini dalam format YYYY-MM-DD — dipakai sebagai batas minimum input
+  const todayStr = new Date().toISOString().split("T")[0];
 
   const STAGES = [
     {
@@ -160,6 +163,7 @@ export default function Section6Timeline({
               <input
                 type="date"
                 name={stage.startName}
+                min={todayStr}
                 value={timeline[stage.startKey]}
                 onChange={(e) =>
                   update(stage.startKey, e.target.value)
@@ -178,6 +182,7 @@ export default function Section6Timeline({
                 <input
                   type="date"
                   name={stage.startName}
+                  min={todayStr}
                   value={timeline[stage.startKey]}
                   onChange={(e) =>
                     update(stage.startKey, e.target.value)
@@ -198,6 +203,7 @@ export default function Section6Timeline({
                 <input
                   type="date"
                   name={stage.endName ?? undefined}
+                  min={todayStr}
                   value={
                     stage.endKey
                       ? timeline[stage.endKey]

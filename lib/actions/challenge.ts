@@ -130,6 +130,20 @@ export async function createChallengeAction(
       return { success: false, error: "Judul challenge wajib diisi." };
     }
 
+    // Validasi: tanggal mulai challenge tidak boleh sebelum hari ini
+    const openStartRaw = formData.get("open_start") as string | null;
+    if (openStartRaw) {
+      const openStartDate = new Date(openStartRaw);
+      const todayMidnight = new Date();
+      todayMidnight.setHours(0, 0, 0, 0);
+      if (openStartDate < todayMidnight) {
+        return {
+          success: false,
+          error: "Tanggal mulai challenge tidak boleh sebelum hari ini.",
+        };
+      }
+    }
+
     // 5. Simpan ke tabel challenges
     const { data: challenge, error: challengeError } = await supabase
       .from("challenges")

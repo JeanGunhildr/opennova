@@ -104,7 +104,7 @@ export default function CreateChallengePage() {
   const [toast, setToast] = useState<ToastNotification | null>(null);
 
   function handleDiscard() {
-    // Reset all state
+    // Reset semua state — user tetap di halaman ini
     setThumbnail(null); setTitle(""); setCategoryId(null);
     setAbout(""); setInnovationGoals([{ id: mkId(), text: "" }]);
     setSubmissionRules([{ id: mkId(), text: "" }]);
@@ -114,7 +114,7 @@ export default function CreateChallengePage() {
     setTimeline(INIT_TIMELINE);
     setRewardAmount(0); setSelectedBank(null); setPaymentStatus("pending");
     setSubmitError(null);
-    router.push("/seeker/challenges");
+    setShowDiscard(false);
   }
 
   async function handleConfirmPublish() {
