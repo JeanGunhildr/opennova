@@ -1,7 +1,4 @@
-﻿// ChallengeHero.tsx — Styled per JSONC spec
-// Gradient: linear-gradient(110deg, #171717 0%, #252525 48%, #6F1717 100%)
-
-import { BadgeCheck, Clock, Trophy } from "lucide-react";
+import { Clock, Trophy } from "lucide-react";
 
 export type HeroStatusStyle = "deadline" | "success" | "danger" | "winner" | "none";
 
@@ -14,10 +11,12 @@ export interface ChallengeHeroProps {
   id: string;
   category: string;
   title: string;
-  company: string;
-  companyInitials: string;
+  /** Kept for future use / backward compat; not rendered in hero */
+  company?: string;
+  companyInitials?: string;
   verified?: boolean;
   heroStatus?: HeroStatus;
+  thumbnailPath?: string | null;
 }
 
 function HeroTag({ status }: { status: HeroStatus }) {
@@ -25,30 +24,29 @@ function HeroTag({ status }: { status: HeroStatus }) {
 
   if (status.style === "deadline") {
     return (
-      <span className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-white text-primary-500 text-[12px] font-semibold flex-shrink-0">
-        <Clock size={11} strokeWidth={2.2} />
+      <span className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-white text-primary-500 text-[12px] font-semibold flex-shrink-0 shadow-2xs">
+        <Clock size={12} strokeWidth={2.2} />
         {status.label}
       </span>
     );
   }
   if (status.style === "winner") {
     return (
-      <span className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-[#F0F9F1] text-[#168A39] text-[12px] font-semibold flex-shrink-0">
-        <Trophy size={11} strokeWidth={2.2} />
+      <span className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-[#F0F9F1] text-[#168A39] text-[12px] font-semibold flex-shrink-0 shadow-2xs">
+        <Trophy size={12} strokeWidth={2.2} />
         {status.label}
       </span>
     );
   }
   if (status.style === "success") {
     return (
-      <span className="inline-flex items-center h-7 px-2.5 rounded-full bg-[#F0F9F1] text-[#168A39] text-[12px] font-semibold flex-shrink-0">
+      <span className="inline-flex items-center h-7 px-3 rounded-full bg-[#F0F9F1] text-[#168A39] text-[12px] font-semibold flex-shrink-0 shadow-2xs">
         {status.label}
       </span>
     );
   }
-  // danger
   return (
-    <span className="inline-flex items-center h-7 px-2.5 rounded-full bg-white text-primary-500 text-[12px] font-semibold flex-shrink-0">
+    <span className="inline-flex items-center h-7 px-3 rounded-full bg-white text-primary-500 text-[12px] font-semibold flex-shrink-0 shadow-2xs">
       {status.label}
     </span>
   );
@@ -57,18 +55,15 @@ function HeroTag({ status }: { status: HeroStatus }) {
 export default function ChallengeHero({
   category,
   title,
-  company,
-  companyInitials,
-  verified = false,
   heroStatus,
+  thumbnailPath,
 }: ChallengeHeroProps) {
   return (
     <div
-      className="relative rounded-[18px] overflow-hidden"
+      className="relative rounded-[20px] overflow-hidden shadow-xs p-5 sm:p-6"
       style={{
         background: "linear-gradient(110deg, #171717 0%, #252525 48%, #6F1717 100%)",
-        minHeight: "195px",
-        padding: "20px 22px",
+        minHeight: "180px",
       }}
     >
       {/* Decorative translucent circle — bottom-right */}
@@ -76,54 +71,52 @@ export default function ChallengeHero({
         aria-hidden="true"
         className="absolute pointer-events-none rounded-full"
         style={{
-          width: "280px",
-          height: "280px",
-          bottom: "-80px",
-          right: "-60px",
-          background: "rgba(255,255,255,0.07)",
+          width: "260px",
+          height: "260px",
+          bottom: "-70px",
+          right: "-50px",
+          background: "rgba(255,255,255,0.06)",
         }}
       />
 
-      {/* Top-right tags */}
-      <div className="flex justify-end gap-2 flex-wrap mb-4">
-        {/* Category tag */}
-        <span
-          className="inline-flex items-center h-7 px-2.5 rounded-full text-white text-[12px] font-medium"
-          style={{
-            background: "rgba(20,20,20,0.28)",
-            border: "1px solid rgba(255,255,255,0.40)",
-          }}
-        >
-          {category}
-        </span>
-
-        {/* Hero status tag */}
-        {heroStatus && <HeroTag status={heroStatus} />}
-      </div>
-
-      {/* Title */}
-      <h1
-        className="font-bold text-white leading-[1.15] tracking-[-0.02em]"
-        style={{ fontSize: "clamp(22px,2.5vw,30px)", maxWidth: "760px" }}
-      >
-        {title}
-      </h1>
-
-      {/* Company row */}
-      <div className="flex items-center gap-2 mt-2.5">
-        <div
-          className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-white text-[11px] font-semibold flex-shrink-0 select-none"
-          style={{
-            background: "rgba(255,255,255,0.08)",
-            border: "1px solid rgba(255,255,255,0.35)",
-          }}
-        >
-          {companyInitials}
+      {/* Hero Content: Image on Left + Title & Category below on Right, vertically centered */}
+      <div className="flex flex-col sm:flex-row items-center gap-6 relative z-10 h-full my-auto">
+        {/* Left Thumbnail Image Frame */}
+        <div className="w-full sm:w-[200px] md:w-[230px] h-[125px] sm:h-[135px] rounded-[16px] overflow-hidden bg-white/10 flex-shrink-0 border border-white/20 shadow-md flex items-center justify-center">
+          {thumbnailPath ? (
+            <img src={thumbnailPath} alt={title} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-primary-600/40 via-red-950/60 to-black/70 flex flex-col items-center justify-center text-white p-3 text-center">
+              <span className="text-[14px] font-bold tracking-tight text-white/90">OpenNova</span>
+              <span className="text-[11px] text-white/60 mt-0.5">Innovation Challenge</span>
+            </div>
+          )}
         </div>
-        <span className="text-[14px] font-medium text-white">{company}</span>
-        {verified && (
-          <BadgeCheck size={16} className="text-white/70 flex-shrink-0" strokeWidth={1.8} />
-        )}
+
+        {/* Right Content: Title on top, Category tag below title */}
+        <div className="flex-1 min-w-0 flex flex-col justify-center gap-3">
+          <h1
+            className="font-bold text-white leading-[1.25] tracking-[-0.02em]"
+            style={{ fontSize: "clamp(19px, 2.2vw, 25px)" }}
+          >
+            {title}
+          </h1>
+
+          {/* Tags row below title: Category tag & Optional hero status tag */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className="inline-flex items-center h-7 px-3.5 rounded-full text-white text-[12px] font-medium backdrop-blur-md"
+              style={{
+                background: "rgba(255,255,255,0.18)",
+                border: "1px solid rgba(255,255,255,0.30)",
+              }}
+            >
+              {category}
+            </span>
+
+            {heroStatus && <HeroTag status={heroStatus} />}
+          </div>
+        </div>
       </div>
     </div>
   );

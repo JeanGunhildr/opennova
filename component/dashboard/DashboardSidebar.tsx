@@ -187,7 +187,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
             ({ label, href, Icon, badge }) => {
               const isActive =
                 href === "/solver"
-                  ? pathname === "/solver"
+                  ? pathname === "/solver" || pathname.startsWith("/solver/challenge")
                   : pathname.startsWith(href);
 
               return (

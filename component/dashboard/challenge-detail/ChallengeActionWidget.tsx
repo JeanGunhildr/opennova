@@ -1,14 +1,17 @@
-﻿// ChallengeActionWidget.tsx — 11-state machine
-// Single component; switch on `state` prop.
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
-  Upload, Link2, ChevronDown, AlertCircle, CheckCircle2,
-  Clock, Trophy, Info, Users, AlertTriangle
+  Link2, ChevronDown, AlertCircle, CheckCircle2,
+  Clock, Trophy, Users, AlertTriangle, X, User, Users2, Trash2
 } from "lucide-react";
+import {
+  joinChallengeAction,
+  cancelJoinChallengeAction,
+  submitChallengeDriveUrlAction
+} from "@/lib/actions/challenge";
 
-// ── Types ──────────────────────────────────────────────────
 export type ChallengeActionState =
   | "ACTIVE_NOT_JOINED"
   | "ACTIVE_JOINED_TEAM_LEADER"
@@ -22,114 +25,19 @@ export type ChallengeActionState =
   | "CLOSED_FAILED_FINAL_PITCHING"
   | "CLOSED_WINNER";
 
+export interface CaptainTeamOption {
+  id: string;
+  name: string;
+  memberCount: number;
+}
+
 export interface ChallengeActionWidgetProps {
   challengeId: string;
-  state: ChallengeActionState;
+  initialState: ChallengeActionState;
   teamName?: string;
   winnerName?: string;
-}
-
-// ── Mock score data ─────────────────────────────────────────
-const EXPERT_SCORES = [
-  { label: "Kelayakan Teknis", score: 85 },
-  { label: "Inovasi & Orisinalitas", score: 78 },
-  { label: "Dampak & Skalabilitas", score: 90 },
-];
-const FULL_SCORES = [
-  ...EXPERT_SCORES,
-  { label: "Biaya & Sumber Daya", score: 82 },
-  { label: "Kesiapan Implementasi", score: 88 },
-  { label: "Kejelasan Model", score: 75 },
-];
-const OVERALL_SCORE = 83;
-
-// ── Inner atoms ─────────────────────────────────────────────
-
-function UploadZone({ enabled }: { enabled: boolean }) {
-  return (
-    <div
-      className={[
-        "mt-3.5 min-h-[80px] border border-dashed rounded-[12px] flex flex-col items-center justify-center text-center p-3.5 transition-colors",
-        enabled
-          ? "bg-gray-50 border-gray-300 hover:bg-secondary-50 hover:border-primary-300 cursor-pointer"
-          : "bg-gray-100 border-gray-300 opacity-70 cursor-not-allowed",
-      ].join(" ")}
-    >
-      <Upload
-        size={22}
-        className={enabled ? "text-primary-500" : "text-gray-400"}
-        strokeWidth={1.6}
-      />
-      <p className={`text-[12px] font-semibold mt-1.5 ${enabled ? "text-gray-800" : "text-gray-400"}`}>
-        {enabled ? "Upload Dokumen Inovasi" : "Upload tidak tersedia"}
-      </p>
-      <p className={`text-[11px] mt-0.5 ${enabled ? "text-gray-500" : "text-gray-400"}`}>
-        {enabled ? "PDF, DOCX, ZIP — maks. 20 MB" : "Hanya Ketua Tim yang dapat mengunggah"}
-      </p>
-    </div>
-  );
-}
-
-function SubmissionInput({ value, onChange, readOnly = false }: {
-  value: string;
-  onChange?: (v: string) => void;
-  readOnly?: boolean;
-}) {
-  return (
-    <div className="mt-4">
-      <p className="text-[11px] font-semibold text-gray-700 mb-1.5">Tautan Submission</p>
-      <div className="relative">
-        <Link2
-          size={13}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-          strokeWidth={1.8}
-        />
-        <input
-          type="url"
-          value={value}
-          onChange={(e) => onChange?.(e.target.value)}
-          readOnly={readOnly}
-          placeholder="https://drive.google.com/..."
-          className={[
-            "w-full h-[38px] rounded-full pl-8 pr-3 text-[11px] border outline-none transition-all",
-            readOnly
-              ? "bg-white border-primary-400 text-primary-500 cursor-default"
-              : "bg-white border-gray-300 text-gray-800 placeholder:text-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/15",
-          ].join(" ")}
-        />
-      </div>
-    </div>
-  );
-}
-
-function AgreementNotice({ agreed, onChange, disabled = false }: {
-  agreed: boolean;
-  onChange?: (v: boolean) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <div
-      className={[
-        "rounded-[10px] p-2.5 mt-3.5 flex gap-2",
-        disabled ? "bg-gray-100" : "bg-secondary-50",
-      ].join(" ")}
-    >
-      <input
-        type="checkbox"
-        checked={agreed}
-        onChange={(e) => onChange?.(e.target.checked)}
-        disabled={disabled}
-        className="w-3.5 h-3.5 rounded accent-primary-500 mt-0.5 flex-shrink-0"
-      />
-      <p className={`text-[11px] leading-[1.45] ${disabled ? "text-gray-500" : "text-gray-700"}`}>
-        Saya menyetujui{" "}
-        <a href="#" className="text-primary-500 font-bold underline">
-          Ketentuan Hak Cipta
-        </a>{" "}
-        dan memastikan bahwa inovasi yang dikumpulkan adalah karya original.
-      </p>
-    </div>
-  );
+  captainTeams?: CaptainTeamOption[];
+  existingSubmissionUrl?: string | null;
 }
 
 function StatusBanner({
@@ -140,158 +48,149 @@ function StatusBanner({
   text: string;
 }) {
   const styles: Record<string, { bg: string; text: string; icon: typeof AlertCircle }> = {
-    warning:  { bg: "bg-[#FFF9E8] text-[#A96F00]", text: "text-gray-800", icon: Clock },
-    danger:   { bg: "bg-primary-50 text-primary-500", text: "text-primary-600", icon: AlertCircle },
-    success:  { bg: "bg-[#E4F4E6] text-[#168A39]", text: "text-[#168A39]", icon: CheckCircle2 },
-    info:     { bg: "bg-[#FFF9E8] text-[#A96F00]", text: "text-gray-800", icon: Info },
+    warning:  { bg: "bg-[#FFF9E8] border border-[#FBE3B5] text-[#8C6210]", text: "text-[#8C6210]", icon: Clock },
+    danger:   { bg: "bg-red-50 border border-red-200 text-red-700", text: "text-red-700", icon: AlertCircle },
+    success:  { bg: "bg-[#E4F4E6] border border-[#C3E8C7] text-[#168A39]", text: "text-[#168A39]", icon: CheckCircle2 },
+    info:     { bg: "bg-[#FFF8E6] border border-[#FBE3B5] text-[#8C6210]", text: "text-[#8C6210]", icon: AlertTriangle },
     winner:   { bg: "bg-primary-500 text-white", text: "text-white", icon: Trophy },
   };
   const s = styles[type];
   const Icon = s.icon;
   return (
-    <div className={`rounded-[10px] p-2.5 flex items-start gap-2 ${s.bg}`}>
-      <Icon size={14} strokeWidth={1.8} className="flex-shrink-0 mt-0.5" />
-      <p className={`text-[11px] leading-[1.45] font-medium ${s.text}`}>{text}</p>
+    <div className={`rounded-[12px] p-3 flex items-start gap-2.5 ${s.bg}`}>
+      <Icon size={16} strokeWidth={1.8} className="flex-shrink-0 mt-0.5" />
+      <p className={`text-[12px] leading-[1.5] font-medium ${s.text}`}>{text}</p>
     </div>
   );
 }
 
-function ScorePanel({ scores }: { scores: { label: string; score: number }[] }) {
-  return (
-    <div className="bg-white border border-gray-200 rounded-[12px] p-2.5 mt-3">
-      <p className="text-[12px] font-bold text-gray-800 mb-2">Hasil Penilaian</p>
-      {scores.map(({ label, score }) => (
-        <div
-          key={label}
-          className="flex items-center justify-between h-8 bg-[#E4F4E6] rounded-full px-2.5 mb-1.5"
-        >
-          <span className="text-[10px] font-medium text-gray-800">{label}</span>
-          <span className="text-[16px] font-bold text-[#168A39]">{score}</span>
-        </div>
-      ))}
-      <div className="flex items-center justify-between h-9 bg-gray-200 rounded-full px-3 mt-2">
-        <span className="text-[12px] font-semibold text-gray-700">Nilai Keseluruhan</span>
-        <span className="text-[18px] font-bold text-gray-800">{OVERALL_SCORE}</span>
-      </div>
-    </div>
-  );
-}
-
-function PrimaryButton({
-  label,
-  disabled = false,
-  onClick,
-}: {
-  label: string;
-  disabled?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={[
-        "w-full h-10 rounded-full text-[12px] font-bold transition-colors mt-3",
-        disabled
-          ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-          : "bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white",
-      ].join(" ")}
-    >
-      {label}
-    </button>
-  );
-}
-
-// ── Widget header ───────────────────────────────────────────
-const JOINED_STATES: ChallengeActionState[] = [
-  "ACTIVE_JOINED_TEAM_LEADER",
-  "ACTIVE_JOINED_INDIVIDUAL",
-  "ACTIVE_JOINED_TEAM_MEMBER",
-  "CLOSED_JOINED",
-  "CLOSED_FAILED_EXPERT_REVIEW",
-  "CLOSED_PASSED_EXPERT_REVIEW",
-  "CLOSED_FAILED_FINAL_PITCHING",
-  "CLOSED_WINNER",
-];
-const TEAM_STATES: ChallengeActionState[] = [
-  "ACTIVE_JOINED_TEAM_LEADER",
-  "ACTIVE_JOINED_TEAM_MEMBER",
-  "CLOSED_JOINED",
-  "CLOSED_FAILED_EXPERT_REVIEW",
-  "CLOSED_PASSED_EXPERT_REVIEW",
-  "CLOSED_FAILED_FINAL_PITCHING",
-  "CLOSED_WINNER",
-];
-
-function WidgetHeader({ state, teamName }: { state: ChallengeActionState; teamName: string }) {
-  const showTabs = JOINED_STATES.includes(state);
-  const teamTabActive = TEAM_STATES.includes(state);
-  const individualTabActive = state === "ACTIVE_JOINED_INDIVIDUAL";
-  const showTeamSelector = TEAM_STATES.includes(state);
-
-  const tabBase =
-    "inline-flex items-center h-7 px-2.5 rounded-full text-[11px] font-semibold transition-colors";
-  const tabActive = "bg-white text-primary-500";
-  const tabInactive = "text-white border border-white/45 hover:bg-white/10";
-
-  return (
-    <div
-      className="flex items-center justify-between h-11 px-2.5"
-      style={{ background: "linear-gradient(100deg, #E9201E 0%, #220000 100%)" }}
-    >
-      {showTabs ? (
-        <div className="flex items-center gap-1">
-          <button type="button" className={`${tabBase} ${teamTabActive ? tabActive : tabInactive}`}>
-            Tim
-          </button>
-          <button type="button" className={`${tabBase} ${individualTabActive ? tabActive : tabInactive}`}>
-            Individu
-          </button>
-        </div>
-      ) : (
-        <span className="text-[12px] font-semibold text-white/80">Partisipasi</span>
-      )}
-
-      {showTeamSelector && (
-        <div className="flex items-center gap-1 text-white text-[11px] font-semibold">
-          <Users size={11} strokeWidth={2} />
-          {teamName}
-          <ChevronDown size={11} strokeWidth={2} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Main widget ─────────────────────────────────────────────
 export default function ChallengeActionWidget({
-  challengeId: _challengeId,
-  state,
-  teamName = "Inovasi Nusantara",
+  challengeId,
+  initialState,
+  teamName: initialTeamName = "",
   winnerName = "Irfan Satya",
+  captainTeams = [],
+  existingSubmissionUrl = "",
 }: ChallengeActionWidgetProps) {
-  const [agreed, setAgreed] = useState(false);
-  const [submissionUrl, setSubmissionUrl] = useState("");
+  const router = useRouter();
+  const [state, setState] = useState<ChallengeActionState>(initialState);
+  const [teamName, setTeamName] = useState(initialTeamName);
+  const [submissionUrl, setSubmissionUrl] = useState(existingSubmissionUrl || "");
+  const [isSubmittingUrl, setIsSubmittingUrl] = useState(false);
 
-  // States where no widget shell is needed
+  // Join options & Modal state
+  const [isJoining, setIsJoining] = useState(false);
+  const [showTeamModal, setShowTeamModal] = useState(false);
+  const [selectedTeamId, setSelectedTeamId] = useState(captainTeams[0]?.id || "");
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+
+  // Checkbox agreement state
+  const [agreed, setAgreed] = useState(false);
+
+  // Handle Join Individu
+  const handleJoinIndividual = async () => {
+    setIsJoining(true);
+    setActionError(null);
+    setActionSuccess(null);
+
+    const res = await joinChallengeAction(challengeId, "individual");
+    setIsJoining(false);
+
+    if (res.success) {
+      setState("ACTIVE_JOINED_INDIVIDUAL");
+      setActionSuccess("Berhasil bergabung secara Individu!");
+      router.refresh();
+    } else {
+      setActionError(res.error || "Gagal mendaftar secara individu.");
+    }
+  };
+
+  // Handle Join Tim
+  const handleJoinTeam = async () => {
+    if (!selectedTeamId) {
+      setActionError("Pilih tim terlebih dahulu.");
+      return;
+    }
+
+    setIsJoining(true);
+    setActionError(null);
+    setActionSuccess(null);
+
+    const res = await joinChallengeAction(challengeId, "team", selectedTeamId);
+    setIsJoining(false);
+    setShowTeamModal(false);
+
+    if (res.success) {
+      const selectedTeam = captainTeams.find((t) => t.id === selectedTeamId);
+      setTeamName(selectedTeam?.name || "Tim Anda");
+      setState("ACTIVE_JOINED_TEAM_LEADER");
+      setActionSuccess(`Berhasil mendaftarkan tim ${selectedTeam?.name}!`);
+      router.refresh();
+    } else {
+      setActionError(res.error || "Gagal mendaftar bersama tim.");
+    }
+  };
+
+  // Handle Batal Bergabung (Cancel Entry)
+  const handleCancelJoin = async () => {
+    if (!confirm("Apakah Anda yakin ingin membatalkan pendaftaran pada challenge ini?")) return;
+
+    setIsJoining(true);
+    setActionError(null);
+    setActionSuccess(null);
+
+    const res = await cancelJoinChallengeAction(challengeId);
+    setIsJoining(false);
+
+    if (res.success) {
+      setState("ACTIVE_NOT_JOINED");
+      setActionSuccess("Pendaftaran telah dibatalkan.");
+      router.refresh();
+    } else {
+      setActionError(res.error || "Gagal membatalkan pendaftaran.");
+    }
+  };
+
+  // Handle Submit Drive Link
+  const handleSubmitDriveUrl = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!submissionUrl.trim()) {
+      setActionError("Masukkan tautan Google Drive submission terlebih dahulu.");
+      return;
+    }
+
+    setIsSubmittingUrl(true);
+    setActionError(null);
+    setActionSuccess(null);
+
+    const res = await submitChallengeDriveUrlAction(challengeId, submissionUrl);
+    setIsSubmittingUrl(false);
+
+    if (res.success) {
+      setActionSuccess("Tautan submission Google Drive berhasil disimpan!");
+      router.refresh();
+    } else {
+      setActionError(res.error || "Gagal menyimpan tautan submission.");
+    }
+  };
+
+  // States where winner info is displayed directly
   if (state === "ENDED_NOT_JOINED") {
     return (
-      <div
-        className="rounded-[14px] overflow-hidden border border-gray-200 shadow-[0_1px_4px_rgba(0,0,0,0.035)]"
-      >
+      <div className="bg-white border border-gray-200 rounded-[14px] overflow-hidden shadow-xs p-4">
         <div
-          className="p-4 flex items-center gap-3"
+          className="rounded-[12px] p-4 flex items-center gap-3"
           style={{ background: "linear-gradient(100deg, #E9201E 0%, #220000 100%)" }}
         >
-          <div className="w-[30px] h-[30px] rounded-full bg-white flex items-center justify-center text-primary-500 text-[11px] font-bold select-none flex-shrink-0">
-            IS
+          <div className="w-[32px] h-[32px] rounded-full bg-white flex items-center justify-center text-primary-500 text-[11px] font-bold select-none flex-shrink-0">
+            {winnerName.split(" ").map((w) => w[0]).join("").slice(0, 2)}
           </div>
           <div>
-            <p className="text-[10px] text-white/78 leading-none mb-0.5">Pemenang Challenge ini adalah</p>
+            <p className="text-[10px] text-white/80 leading-none mb-0.5">Pemenang Challenge ini adalah</p>
             <p className="text-[15px] font-bold text-white leading-tight">{winnerName}</p>
           </div>
-          <Trophy size={20} className="text-white/70 ml-auto" strokeWidth={1.6} />
+          <Trophy size={20} className="text-white/80 ml-auto" strokeWidth={1.8} />
         </div>
       </div>
     );
@@ -299,215 +198,325 @@ export default function ChallengeActionWidget({
 
   return (
     <div className="bg-white border border-gray-200 rounded-[14px] overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.035)]">
-
-      {/* Stable red header */}
-      <WidgetHeader state={state} teamName={teamName} />
-
-      {/* State-specific body */}
-      <div className="p-4">
-        {(() => {
-          switch (state) {
-
-            // ── 1. Active, not joined ────────────────────────
-            case "ACTIVE_NOT_JOINED":
-              return (
-                <>
-                  <h3 className="text-[15px] font-bold text-gray-900">Ikuti Challenge</h3>
-                  <p className="text-[12px] text-gray-600 leading-[1.55] mt-1.5">
-                    Daftarkan diri anda dan mulai kerjakan inovasi terbaik untuk challenge ini. Solver terpilih akan mendapat hadiah dan sertifikat resmi.
-                  </p>
-                  <PrimaryButton label="Ikuti Challenge" />
-                  <button
-                    type="button"
-                    className="w-full h-10 rounded-full text-[12px] font-semibold bg-white border border-gray-300 text-gray-800 hover:bg-gray-50 transition-colors mt-2"
-                  >
-                    Lihat Kesepakatan Hak Cipta
-                  </button>
-                </>
-              );
-
-            // ── 2. Active, joined, team leader ──────────────
-            case "ACTIVE_JOINED_TEAM_LEADER":
-              return (
-                <>
-                  <h3 className="text-[15px] font-bold text-gray-900">Kumpulkan Inovasi Anda</h3>
-                  <p className="text-[12px] text-gray-600 leading-[1.55] mt-1.5">
-                    Upload dokumen atau tambahkan tautan submission anda sebagai Ketua Tim.
-                  </p>
-                  <UploadZone enabled />
-                  <SubmissionInput value={submissionUrl} onChange={setSubmissionUrl} />
-                  <AgreementNotice agreed={agreed} onChange={setAgreed} />
-                  <PrimaryButton label="Submit Inovasi" disabled={!agreed} />
-                  <p className="text-[10px] text-gray-400 text-center mt-2">
-                    Submission hanya dapat dilakukan 1 kali.
-                  </p>
-                </>
-              );
-
-            // ── 3. Active, joined, individual ───────────────
-            case "ACTIVE_JOINED_INDIVIDUAL":
-              return (
-                <>
-                  <h3 className="text-[15px] font-bold text-gray-900">Kumpulkan Inovasi Anda</h3>
-                  <p className="text-[12px] text-gray-600 leading-[1.55] mt-1.5">
-                    Upload dokumen atau tambahkan tautan submission anda sebagai peserta individu.
-                  </p>
-                  <UploadZone enabled />
-                  <SubmissionInput value={submissionUrl} onChange={setSubmissionUrl} />
-                  <AgreementNotice agreed={agreed} onChange={setAgreed} />
-                  <PrimaryButton label="Submit Inovasi" disabled={!agreed} />
-                  <p className="text-[10px] text-gray-400 text-center mt-2">
-                    Submission hanya dapat dilakukan 1 kali.
-                  </p>
-                </>
-              );
-
-            // ── 4. Active, joined, team member (read-only) ──
-            case "ACTIVE_JOINED_TEAM_MEMBER":
-              return (
-                <>
-                  <h3 className="text-[15px] font-bold text-gray-900">Kumpulkan Inovasi</h3>
-                  <UploadZone enabled={false} />
-                  <div className="mt-3.5">
-                    <StatusBanner
-                      type="info"
-                      text="Anda sedang mengikuti challenge ini sebagai Anggota Tim. Submission hanya dapat dilakukan oleh Ketua Tim."
-                    />
-                  </div>
-                  <AgreementNotice agreed={false} disabled />
-                  <PrimaryButton label="Submit Inovasi" disabled />
-                </>
-              );
-
-            // ── 5. Closed, not joined ────────────────────────
-            case "CLOSED_NOT_JOINED":
-              return (
-                <>
-                  <h3 className="text-[15px] font-bold text-gray-900">Pendaftaran Ditutup</h3>
-                  <div className="mt-3">
-                    <StatusBanner
-                      type="warning"
-                      text="Anda tidak mengikuti challenge ini. Pendaftaran telah ditutup dan tidak dapat lagi diikuti."
-                    />
-                  </div>
-                </>
-              );
-
-            // ── 6. Closed, joined, in queue ─────────────────
-            case "CLOSED_JOINED":
-              return (
-                <>
-                  <h3 className="text-[15px] font-bold text-gray-900">Menunggu Penilaian</h3>
-                  <div className="mt-3">
-                    <StatusBanner
-                      type="warning"
-                      text="Inovasi anda sudah masuk ke dalam antrian penilaian. Tunggu hingga hasil penilaian keluar."
-                    />
-                  </div>
-                  <SubmissionInput
-                    value="https://drive.google.com/file/inovasi-saya"
-                    readOnly
-                  />
-                  <AgreementNotice agreed disabled />
-                  <PrimaryButton label="Buka Tautan" />
-                </>
-              );
-
-            // ── 7. Closed, failed expert review ─────────────
-            case "CLOSED_FAILED_EXPERT_REVIEW":
-              return (
-                <>
-                  <StatusBanner
-                    type="danger"
-                    text="Mohon maaf, anda tidak lolos seleksi tahap Penjurian Ahli. Silahkan lihat hasil penilaian inovasi anda."
-                  />
-                  <SubmissionInput
-                    value="https://drive.google.com/file/inovasi-saya"
-                    readOnly
-                  />
-                  <AgreementNotice agreed disabled />
-                  <PrimaryButton label="Buka Tautan" />
-                  <ScorePanel scores={EXPERT_SCORES} />
-                </>
-              );
-
-            // ── 8. Closed, passed expert review ─────────────
-            case "CLOSED_PASSED_EXPERT_REVIEW":
-              return (
-                <>
-                  <StatusBanner
-                    type="success"
-                    text="Selamat, anda lolos seleksi tahap Penjurian Ahli. Cek Email / WhatsApp anda untuk mendapat jadwal dan detail Pitching Final dengan juri."
-                  />
-                  <SubmissionInput
-                    value="https://drive.google.com/file/inovasi-saya"
-                    readOnly
-                  />
-                  <AgreementNotice agreed disabled />
-                  <PrimaryButton label="Buka Tautan" />
-                  <ScorePanel scores={EXPERT_SCORES} />
-                </>
-              );
-
-            // ── 9. Closed, failed final pitching ────────────
-            case "CLOSED_FAILED_FINAL_PITCHING":
-              return (
-                <>
-                  <StatusBanner
-                    type="danger"
-                    text="Mohon maaf, anda tidak lolos seleksi tahap Pitching Final. Silahkan lihat hasil penilaian inovasi anda."
-                  />
-                  <SubmissionInput
-                    value="https://drive.google.com/file/inovasi-saya"
-                    readOnly
-                  />
-                  <AgreementNotice agreed disabled />
-                  <PrimaryButton label="Buka Tautan" />
-                  <ScorePanel scores={FULL_SCORES} />
-                </>
-              );
-
-            // ── 10. Closed, winner ───────────────────────────
-            case "CLOSED_WINNER":
-              return (
-                <>
-                  {/* Winner banner */}
-                  <div
-                    className="-mx-4 -mt-4 mb-4 p-4 flex items-center gap-3"
-                    style={{ background: "linear-gradient(100deg, #E9201E 0%, #220000 100%)" }}
-                  >
-                    <div className="w-[30px] h-[30px] rounded-full bg-white flex items-center justify-center text-primary-500 text-[11px] font-bold select-none flex-shrink-0">
-                      {winnerName.split(" ").map((w) => w[0]).join("").slice(0, 2)}
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-white/78 leading-none mb-0.5">
-                        Pemenang Challenge ini adalah
-                      </p>
-                      <p className="text-[15px] font-bold text-white leading-tight">{winnerName}</p>
-                    </div>
-                    <Trophy size={18} className="text-white/70 ml-auto flex-shrink-0" strokeWidth={1.6} />
-                  </div>
-
-                  {/* Success status */}
-                  <StatusBanner
-                    type="success"
-                    text="Selamat, inovasi Anda terpilih menjadi pemenang di Challenge ini. Hadiah beserta sertifikat resmi telah dikirimkan ke menu Perolehan."
-                  />
-                  <SubmissionInput
-                    value="https://drive.google.com/file/inovasi-saya"
-                    readOnly
-                  />
-                  <AgreementNotice agreed disabled />
-                  <PrimaryButton label="Buka Tautan" />
-                  <ScorePanel scores={FULL_SCORES} />
-                </>
-              );
-
-            default:
-              return null;
-          }
-        })()}
+      {/* ── Widget Red Banner Header ───────────────────────── */}
+      <div
+        className="flex items-center justify-between h-11 px-3.5"
+        style={{ background: "linear-gradient(100deg, #E9201E 0%, #220000 100%)" }}
+      >
+        <span className="text-[12px] font-bold text-white flex items-center gap-1.5">
+          <Trophy size={14} className="text-white/90" />
+          Status Partisipasi
+        </span>
+        {state === "ACTIVE_JOINED_TEAM_LEADER" || state === "ACTIVE_JOINED_TEAM_MEMBER" ? (
+          <span className="inline-flex items-center gap-1 text-white text-[11px] font-semibold bg-white/15 px-2.5 py-0.5 rounded-full border border-white/20">
+            <Users size={12} />
+            {teamName || "Tim"}
+          </span>
+        ) : state === "ACTIVE_JOINED_INDIVIDUAL" ? (
+          <span className="inline-flex items-center gap-1 text-white text-[11px] font-semibold bg-white/15 px-2.5 py-0.5 rounded-full border border-white/20">
+            <User size={12} />
+            Individu
+          </span>
+        ) : null}
       </div>
+
+      {/* ── Action Box Body ───────────────────────────────── */}
+      <div className="p-4 space-y-3.5">
+        {/* Error / Success Feedback Notifications */}
+        {actionError && (
+          <div className="p-2.5 rounded-[10px] bg-red-50 border border-red-200 text-red-600 text-[12px] flex items-center justify-between">
+            <span>{actionError}</span>
+            <button type="button" onClick={() => setActionError(null)}>
+              <X size={14} />
+            </button>
+          </div>
+        )}
+        {actionSuccess && (
+          <div className="p-2.5 rounded-[10px] bg-[#E4F4E6] border border-[#C3E8C7] text-[#168A39] text-[12px] flex items-center justify-between">
+            <span>{actionSuccess}</span>
+            <button type="button" onClick={() => setActionSuccess(null)}>
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
+        {/* ── 1. State: ACTIVE_NOT_JOINED (Opsi Bergabung) ── */}
+        {state === "ACTIVE_NOT_JOINED" && (
+          <div>
+            <h3 className="text-[14.5px] font-bold text-gray-900 mb-1">Opsi Opsi Bergabung</h3>
+            <p className="text-[12px] text-gray-600 leading-[1.55] mb-3.5">
+              Pilih mode pendaftaran untuk mulai mengerjakan tantangan ini.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              {/* Tombol Join Individu */}
+              <button
+                type="button"
+                onClick={handleJoinIndividual}
+                disabled={isJoining}
+                className="h-[40px] px-3 rounded-full bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white text-[12px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs disabled:opacity-50"
+              >
+                <User size={14} />
+                Individu
+              </button>
+
+              {/* Tombol Join Tim */}
+              <button
+                type="button"
+                onClick={() => setShowTeamModal(true)}
+                disabled={isJoining}
+                className="h-[40px] px-3 rounded-full bg-gray-900 hover:bg-gray-800 active:bg-black text-white text-[12px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs disabled:opacity-50"
+              >
+                <Users2 size={14} />
+                Gabung Tim
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── 2. State: ACTIVE_JOINED_INDIVIDUAL ───────────── */}
+        {state === "ACTIVE_JOINED_INDIVIDUAL" && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-[14.5px] font-bold text-gray-900">Submission Individu</h3>
+              <button
+                type="button"
+                onClick={handleCancelJoin}
+                disabled={isJoining}
+                className="inline-flex items-center gap-1 text-[11px] text-red-600 hover:text-red-700 font-semibold transition-colors"
+              >
+                <Trash2 size={12} />
+                Batal Bergabung
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitDriveUrl} className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-700 mb-1">
+                  Tautan Google Drive Submission
+                </label>
+                <div className="relative">
+                  <Link2 size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="url"
+                    value={submissionUrl}
+                    onChange={(e) => setSubmissionUrl(e.target.value)}
+                    placeholder="https://drive.google.com/file/d/..."
+                    className="w-full h-[38px] rounded-full pl-8 pr-3 text-[12px] border border-gray-300 bg-white text-gray-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/15"
+                    required
+                  />
+                </div>
+                <p className="text-[10px] text-gray-500 mt-1">
+                  Pastikan izin akses tautan Google Drive telah diubah menjadi &quot;Siapa saja yang memiliki link&quot;.
+                </p>
+              </div>
+
+              {/* Checkbox Hak Cipta */}
+              <div className="flex items-start gap-2 p-2 bg-gray-50 border border-gray-200 rounded-[10px]">
+                <input
+                  type="checkbox"
+                  id="agree-ind"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded accent-primary-500 mt-0.5 flex-shrink-0"
+                />
+                <label htmlFor="agree-ind" className="text-[11px] text-gray-700 leading-[1.4] cursor-pointer">
+                  Saya menyetujui Ketentuan Hak Cipta dan mengonfirmasi karya ini orisinal.
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                disabled={!agreed || isSubmittingUrl}
+                className="w-full h-[38px] rounded-full bg-primary-500 hover:bg-primary-600 text-white text-[12px] font-bold transition-all disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+              >
+                {isSubmittingUrl ? "Menyimpan..." : "Kirim Submission"}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* ── 3. State: ACTIVE_JOINED_TEAM_LEADER ──────────── */}
+        {state === "ACTIVE_JOINED_TEAM_LEADER" && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-[14.5px] font-bold text-gray-900">Submission Ketua Tim</h3>
+              <button
+                type="button"
+                onClick={handleCancelJoin}
+                disabled={isJoining}
+                className="inline-flex items-center gap-1 text-[11px] text-red-600 hover:text-red-700 font-semibold transition-colors"
+              >
+                <Trash2 size={12} />
+                Batal Bergabung
+              </button>
+            </div>
+
+            <p className="text-[11.5px] text-gray-600 mb-2">
+              Anda terdaftar sebagai Ketua Tim <span className="font-bold text-gray-900">{teamName}</span>.
+            </p>
+
+            <form onSubmit={handleSubmitDriveUrl} className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-700 mb-1">
+                  Tautan Google Drive Submission Tim
+                </label>
+                <div className="relative">
+                  <Link2 size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="url"
+                    value={submissionUrl}
+                    onChange={(e) => setSubmissionUrl(e.target.value)}
+                    placeholder="https://drive.google.com/file/d/..."
+                    className="w-full h-[38px] rounded-full pl-8 pr-3 text-[12px] border border-gray-300 bg-white text-gray-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/15"
+                    required
+                  />
+                </div>
+                <p className="text-[10px] text-gray-500 mt-1">
+                  Pastikan izin akses tautan Google Drive telah diubah menjadi &quot;Siapa saja yang memiliki link&quot;.
+                </p>
+              </div>
+
+              {/* Checkbox Hak Cipta */}
+              <div className="flex items-start gap-2 p-2 bg-gray-50 border border-gray-200 rounded-[10px]">
+                <input
+                  type="checkbox"
+                  id="agree-team"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded accent-primary-500 mt-0.5 flex-shrink-0"
+                />
+                <label htmlFor="agree-team" className="text-[11px] text-gray-700 leading-[1.4] cursor-pointer">
+                  Saya menyetujui Ketentuan Hak Cipta dan mengonfirmasi karya tim ini orisinal.
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                disabled={!agreed || isSubmittingUrl}
+                className="w-full h-[38px] rounded-full bg-primary-500 hover:bg-primary-600 text-white text-[12px] font-bold transition-all disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+              >
+                {isSubmittingUrl ? "Menyimpan..." : "Kirim Submission Tim"}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* ── 4. State: ACTIVE_JOINED_TEAM_MEMBER ──────────── */}
+        {state === "ACTIVE_JOINED_TEAM_MEMBER" && (
+          <div>
+            <h3 className="text-[14.5px] font-bold text-gray-900 mb-2">Pendaftaran Tim</h3>
+            <StatusBanner
+              type="info"
+              text="Anda sedang mengikuti challenge ini sebagai Anggota Tim. Submission hanya dapat dilakukan oleh Ketua Tim."
+            />
+          </div>
+        )}
+
+        {/* ── 5. State: CLOSED_NOT_JOINED ───────────────────── */}
+        {state === "CLOSED_NOT_JOINED" && (
+          <StatusBanner
+            type="warning"
+            text="Anda tidak mengikuti challenge ini. Pendaftaran telah ditutup."
+          />
+        )}
+      </div>
+
+      {/* ── Modal Pilih Tim (Khusus Ketua Tim) ────────────────── */}
+      {showTeamModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[18px] max-w-md w-full p-5 shadow-xl relative animate-in fade-in zoom-in duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <h3 className="text-[16px] font-bold text-gray-900 flex items-center gap-2">
+                <Users2 size={18} className="text-primary-500" />
+                Pilih Tim untuk Daftar
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowTeamModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="py-4 space-y-3">
+              {/* Notice Warning Khusus Ketua Tim */}
+              <div className="bg-[#FFF8E6] border border-[#FBE3B5] rounded-[12px] p-3 text-[12px] text-[#8C6210] flex items-start gap-2.5">
+                <AlertTriangle size={16} className="text-[#D9822B] flex-shrink-0 mt-0.5" />
+                <p>
+                  <strong className="font-bold">Perhatian:</strong> Hanya Ketua Tim yang dapat mendaftarkan tim untuk kategori tim. Tim yang terpilih opsi-opsinya di bawah ini adalah tim yang mana Anda menjabat sebagai Ketua.
+                </p>
+              </div>
+
+              {captainTeams.length === 0 ? (
+                <div className="text-center py-5 bg-gray-50 border border-gray-200 rounded-[14px]">
+                  <p className="text-[13px] font-medium text-gray-700">
+                    Anda tidak memiliki tim aktif di mana Anda menjadi Ketua.
+                  </p>
+                  <p className="text-[11px] text-gray-500 mt-1">
+                    Buat tim baru di menu &quot;Tim Anda&quot; untuk mendaftar sebagai tim.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="block text-[12px] font-bold text-gray-700">
+                    Pilih Tim Saya:
+                  </label>
+                  {captainTeams.map((team) => (
+                    <label
+                      key={team.id}
+                      className={`flex items-center justify-between p-3 rounded-[12px] border cursor-pointer transition-all ${
+                        selectedTeamId === team.id
+                          ? "border-primary-500 bg-primary-50/40 text-primary-900"
+                          : "border-gray-200 bg-white text-gray-800 hover:bg-gray-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <input
+                          type="radio"
+                          name="selected-team"
+                          value={team.id}
+                          checked={selectedTeamId === team.id}
+                          onChange={() => setSelectedTeamId(team.id)}
+                          className="accent-primary-500"
+                        />
+                        <div>
+                          <p className="text-[13px] font-bold">{team.name}</p>
+                          <p className="text-[10px] text-gray-500">{team.memberCount} anggota aktif</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-semibold px-2 py-0.5 bg-primary-100 text-primary-700 rounded-full">
+                        Ketua Tim
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setShowTeamModal(false)}
+                className="h-9 px-4 rounded-full border border-gray-300 text-[12px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Batal
+              </button>
+              {captainTeams.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleJoinTeam}
+                  disabled={isJoining}
+                  className="h-9 px-5 rounded-full bg-primary-500 hover:bg-primary-600 text-white text-[12px] font-bold transition-colors disabled:opacity-50"
+                >
+                  {isJoining ? "Mendaftarkan..." : "Daftarkan Tim"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

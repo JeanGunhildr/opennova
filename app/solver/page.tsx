@@ -1,86 +1,136 @@
-﻿import { Search, SlidersHorizontal, Zap } from "lucide-react";
-
-import ChallengeCard from "@/component/dashboard/ChallengeCard";
-import JelajahFilters from "@/component/dashboard/JelajahFilters";
-
-import { dashboardChallenges } from "@/lib/data/dashboard";
+import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/supabase/profile";
 import { getCurrentUser } from "@/lib/supabase/user";
-import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import JelajahExplorer, { ChallengeItem, CategoryOption } from "@/component/dashboard/JelajahExplorer";
+import { dashboardChallenges } from "@/lib/data/dashboard";
+
+export const dynamic = "force-dynamic";
 
 export default async function JelajahPage() {
   const user = await getCurrentUser();
 
-  if(!user) {
-    redirect('/');
-  } 
+  if (!user) {
+    redirect("/");
+  }
   const profile = await getCurrentProfile();
-  
-  if (profile?.role == 'seeker') {
-    redirect ('/seeker');
+
+  if (profile?.role === "seeker") {
+    redirect("/seeker");
   }
 
+  const supabase = await createClient();
+
+  // 1. Ambil kategori dari database
+  const { data: dbCategories } = await supabase
+    .from("categories")
+    .select("id, name")
+    .order("name", { ascending: true });
+
+  const categories: CategoryOption[] = (dbCategories || []).map((c: any) => ({
+    id: c.id,
+    name: c.name,
+  }));
+
+  // 2. Ambil data challenge dari database
+  const { data: dbChallenges, error: chError } = await supabase
+    .from("challenges")
+    .select(`
+      id,
+      name,
+      description,
+      thumbnail_path,
+      prize_pool,
+      deadline,
+      status,
+      created_at,
+      category_id,
+      categories (
+        id,
+        name
+      ),
+      seeker_profiles (
+        company_name,
+        representative_name,
+        company_type
+      )
+    `)
+    .order("created_at", { ascending: false });
+
+  if (chError) {
+    console.error("Error fetching challenges from database:", chError);
+  }
+
+  // Map data DB ke ChallengeItem
+  const mappedDbChallenges: ChallengeItem[] = (dbChallenges || []).map((ch: any) => {
+    const categoryName = Array.isArray(ch.categories)
+      ? ch.categories[0]?.name
+      : ch.categories?.name || "Umum";
+    
+    const companyName = Array.isArray(ch.seeker_profiles)
+      ? ch.seeker_profiles[0]?.company_name
+      : ch.seeker_profiles?.company_name || "Perusahaan Seeker";
+
+    const companyType = Array.isArray(ch.seeker_profiles)
+      ? ch.seeker_profiles[0]?.company_type || "Perusahaan Swasta"
+      : (ch.seeker_profiles as any)?.company_type || "Perusahaan Swasta";
+
+    const initials = companyName
+      .split(" ")
+      .map((w: string) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "PR";
+
+    const deadlineDate = ch.deadline ? new Date(ch.deadline) : new Date();
+    const formattedDeadline = deadlineDate.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+
+    const prize = Number(ch.prize_pool) || 0;
+    const formattedReward = `Rp ${prize.toLocaleString("id-ID")}`;
+
+    return {
+      id: ch.id,
+      category: categoryName,
+      categoryId: ch.category_id,
+      company: companyName,
+      companyInitials: initials,
+      companyType: companyType,
+      title: ch.name,
+      description: ch.description || "",
+      thumbnailPath: ch.thumbnail_path,
+      reward: formattedReward,
+      deadline: formattedDeadline,
+      rawDeadline: ch.deadline,
+      createdAt: ch.created_at,
+      bgFrom: "#1a2035",
+      bgVia: "#1e3358",
+      bgTo: "#0d1524",
+    };
+  });
+
+  // Gunakan murni data database jika ada! Jika tabel database masih 0 baris, gunakan mock data sebagai fallback.
+  const mockChallengesEnriched: ChallengeItem[] = dashboardChallenges.map((ch, idx) => ({
+    ...ch,
+    description: "Inovasi nyata dari mitra industri terkemuka untuk mengakselerasi transformasi digital dan keberlanjutan.",
+    companyType: idx % 2 === 0 ? "BUMN" : idx % 3 === 0 ? "UMKM" : "Perusahaan Swasta",
+    createdAt: new Date(Date.now() - idx * 86400000).toISOString(),
+    rawDeadline: new Date(Date.now() + (idx + 5) * 86400000 * 3).toISOString(),
+  }));
+
+  const allChallenges =
+    mappedDbChallenges.length > 0 ? mappedDbChallenges : mockChallengesEnriched;
+
+  const userFirstName = profile?.full_name ? profile.full_name.split(" ")[0] : "";
+
   return (
-    <div className="px-6 lg:px-10 py-8 lg:py-9 max-w-[1160px]">
-      {/* Top banner pill */}
-      <div className="inline-flex items-center gap-2 bg-secondary-100 text-primary-500 text-[13px] font-semibold rounded-full px-3.5 py-2 mb-5">
-        <Zap size={14} strokeWidth={2.2} />
-        125 Challenge Aktif Tersedia
-      </div>
-
-      {/* Page header */}
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5 mb-0">
-        <div>
-          <h1 className="text-[36px] lg:text-[40px] font-bold text-gray-900 tracking-[-0.025em] leading-[1.1]">
-            Selamat datang, {profile?.full_name ? profile.full_name.split(" ")[0] : ""}
-          </h1>
-
-          <p className="text-[16px] text-gray-500 mt-2 max-w-[520px] leading-[1.5]">
-            Temukan tantangan nyata dari perusahaan, BUMN hingga UMKM yang
-            membutuhkan inovasimu. Cari berdasarkan sektor, kategori, atau
-            nilai hadiah.
-          </p>
-        </div>
-
-        {/* Search + Sector */}
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <div className="relative">
-            <Search
-              size={18}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-              strokeWidth={1.8}
-            />
-
-            <input
-              type="search"
-              placeholder="Cari challenge..."
-              className="h-[46px] w-full lg:w-[320px] bg-white border border-[#E2E3E5] rounded-full pl-11 pr-14 text-[14px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
-            />
-
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 bg-gray-100 text-gray-500 text-[11px] font-medium px-2 py-0.5 rounded-full hidden lg:block">
-              ⌘K
-            </span>
-          </div>
-
-          <button
-            type="button"
-            className="flex items-center gap-2 h-[46px] px-4 bg-white border border-[#E2E3E5] rounded-full text-[14px] font-semibold text-gray-800 hover:border-gray-400 transition-colors flex-shrink-0"
-          >
-            <SlidersHorizontal size={16} strokeWidth={1.8} />
-            Sektor
-          </button>
-        </div>
-      </div>
-
-      {/* Category tabs + filter chips */}
-      <JelajahFilters />
-
-      {/* Challenge grid */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[18px]">
-        {dashboardChallenges.map((challenge) => (
-          <ChallengeCard key={challenge.id} challenge={challenge} />
-        ))}
-      </div>
-    </div>
+    <JelajahExplorer
+      initialChallenges={allChallenges}
+      categories={categories}
+      userFirstName={userFirstName}
+    />
   );
 }

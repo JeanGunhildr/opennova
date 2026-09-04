@@ -180,10 +180,9 @@ export async function createChallengeAction(
     const objectivesToInsert = rawObjectives
       .map((text) => text.trim())
       .filter(Boolean)
-      .map((content, index) => ({
+      .map((content) => ({
         challenge_id: challengeId,
         content,
-        sort_order: index + 1,
       }));
 
     if (objectivesToInsert.length > 0) {
@@ -222,14 +221,12 @@ export async function createChallengeAction(
         stage: "expert",
         name: title.trim(),
         description: expertDescs[i]?.trim() || null,
-        sort_order: i + 1,
       })),
       ...pitchTitles.map((title, i) => ({
         challenge_id: challengeId,
         stage: "pitch",
         name: title.trim(),
         description: pitchDescs[i]?.trim() || null,
-        sort_order: i + 1,
       })),
     ].filter((c) => c.name.length > 0);
 
@@ -254,28 +251,24 @@ export async function createChallengeAction(
         title: "Challenge Dibuka",
         start_date: openStart,
         end_date: openEnd || null,
-        sort_order: 1,
       },
       {
         challenge_id: challengeId,
         title: "Penjurian Ahli",
         start_date: expertStart,
         end_date: expertEnd,
-        sort_order: 2,
       },
       {
         challenge_id: challengeId,
         title: "Pitching Final",
         start_date: pitchStart,
         end_date: pitchEnd,
-        sort_order: 3,
       },
       {
         challenge_id: challengeId,
         title: "Pengumuman Pemenang",
         start_date: announcement,
         end_date: null,
-        sort_order: 4,
       },
     ];
 
@@ -463,4 +456,212 @@ export async function joinChallengeAction(
     return { success: false, error: "Terjadi kesalahan pada server." };
   }
 }
+
+/**
+ * Action to cancel joining a challenge (for individual solvers or team captains).
+ */
+export async function cancelJoinChallengeAction(
+  challengeId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: "Sesi telah berakhir. Silakan login kembali." };
+    }
+
+    // Cek pendaftaran individu
+    const { data: indEntry } = await supabase
+      .from("challenge_entries")
+      .select("id")
+      .eq("challenge_id", challengeId)
+      .eq("solver_id", user.id)
+      .maybeSingle();
+
+    if (indEntry) {
+      await supabase.from("challenge_entry_members").delete().eq("entry_id", indEntry.id);
+      await supabase.from("challenge_entries").delete().eq("id", indEntry.id);
+
+      revalidatePath(`/solver/challenge/${challengeId}`);
+      revalidatePath("/solver/workspace");
+
+      return { success: true };
+    }
+
+    // Cek pendaftaran tim (hanya ketua tim yang bisa membatalkan)
+    const { data: teamCaptained } = await supabase
+      .from("teams")
+      .select("id")
+      .eq("captain_id", user.id)
+      .eq("is_active", true);
+
+    const teamIds = (teamCaptained || []).map((t) => t.id);
+
+    if (teamIds.length > 0) {
+      const { data: teamEntry } = await supabase
+        .from("challenge_entries")
+        .select("id, team_id")
+        .eq("challenge_id", challengeId)
+        .in("team_id", teamIds)
+        .maybeSingle();
+
+      if (teamEntry) {
+        await supabase.from("challenge_entry_members").delete().eq("entry_id", teamEntry.id);
+        await supabase.from("challenge_entries").delete().eq("id", teamEntry.id);
+
+        if (teamEntry.team_id) {
+          await supabase.from("teams").update({ is_locked: false }).eq("id", teamEntry.team_id);
+        }
+
+        revalidatePath(`/solver/challenge/${challengeId}`);
+        revalidatePath("/solver/workspace");
+        revalidatePath("/solver/team");
+
+        return { success: true };
+      }
+    }
+
+    return { success: false, error: "Data pendaftaran tidak ditemukan atau Anda tidak memiliki akses." };
+  } catch (error) {
+    console.error("Unhandled error in cancelJoinChallengeAction:", error);
+    return { success: false, error: "Terjadi kesalahan pada server." };
+  }
+}
+
+/**
+ * Action for individual solvers or team leaders to submit their Google Drive link solution.
+ */
+export async function submitChallengeDriveUrlAction(
+  challengeId: string,
+  submissionUrl: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return { success: false, error: "Sesi telah berakhir. Silakan login kembali." };
+    }
+
+    const cleanUrl = submissionUrl.trim();
+    if (!cleanUrl || (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://"))) {
+      return { success: false, error: "Tautan tidak valid. Pastikan diawali dengan http:// atau https://" };
+    }
+
+    // 1. Cari entry individu
+    const { data: indEntry } = await supabase
+      .from("challenge_entries")
+      .select("id")
+      .eq("challenge_id", challengeId)
+      .eq("solver_id", user.id)
+      .maybeSingle();
+
+    if (indEntry) {
+      // Update challenge_entries
+      await supabase
+        .from("challenge_entries")
+        .update({
+          submission_url: cleanUrl,
+          status: "submitted",
+          submitted_at: new Date().toISOString(),
+        })
+        .eq("id", indEntry.id);
+
+      // Insert/update into submissions table
+      const { data: existingSub } = await supabase
+        .from("submissions")
+        .select("id")
+        .eq("entry_id", indEntry.id)
+        .maybeSingle();
+
+      if (existingSub) {
+        await supabase
+          .from("submissions")
+          .update({ drive_url: cleanUrl, submitted_at: new Date().toISOString() })
+          .eq("id", existingSub.id);
+      } else {
+        await supabase.from("submissions").insert({
+          entry_id: indEntry.id,
+          drive_url: cleanUrl,
+        });
+      }
+
+      revalidatePath(`/solver/challenge/${challengeId}`);
+      revalidatePath("/solver/workspace");
+
+      return { success: true };
+    }
+
+    // 2. Cari entry tim (harus sebagai ketua tim)
+    const { data: teamCaptained } = await supabase
+      .from("teams")
+      .select("id")
+      .eq("captain_id", user.id)
+      .eq("is_active", true);
+
+    const teamIds = (teamCaptained || []).map((t) => t.id);
+
+    if (teamIds.length > 0) {
+      const { data: teamEntry } = await supabase
+        .from("challenge_entries")
+        .select("id")
+        .eq("challenge_id", challengeId)
+        .in("team_id", teamIds)
+        .maybeSingle();
+
+      if (teamEntry) {
+        // Update challenge_entries
+        await supabase
+          .from("challenge_entries")
+          .update({
+            submission_url: cleanUrl,
+            status: "submitted",
+            submitted_at: new Date().toISOString(),
+          })
+          .eq("id", teamEntry.id);
+
+        // Insert/update into submissions table
+        const { data: existingSub } = await supabase
+          .from("submissions")
+          .select("id")
+          .eq("entry_id", teamEntry.id)
+          .maybeSingle();
+
+        if (existingSub) {
+          await supabase
+            .from("submissions")
+            .update({ drive_url: cleanUrl, submitted_at: new Date().toISOString() })
+            .eq("id", existingSub.id);
+        } else {
+          await supabase.from("submissions").insert({
+            entry_id: teamEntry.id,
+            drive_url: cleanUrl,
+          });
+        }
+
+        revalidatePath(`/solver/challenge/${challengeId}`);
+        revalidatePath("/solver/workspace");
+
+        return { success: true };
+      }
+    }
+
+    return {
+      success: false,
+      error: "Anda tidak terdaftar sebagai peserta individu atau ketua tim pada challenge ini.",
+    };
+  } catch (error) {
+    console.error("Unhandled error in submitChallengeDriveUrlAction:", error);
+    return { success: false, error: "Terjadi kesalahan pada server." };
+  }
+}
+
+
 

@@ -14,7 +14,10 @@ interface RegisterFlowProps {
 }
 
 interface RegisterData {
+  role: "solver" | "seeker";
   fullName: string;
+  companyName: string;
+  companyType: string;
   email: string;
   password: string;
   confirmPassword: string;
@@ -126,23 +129,24 @@ function Step1({
 
   function handleNext(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     setError("");
 
     const formData = new FormData(event.currentTarget);
 
-    const fullName = formData.get("full_name");
-    const email = formData.get("email");
-    const password = formData.get("password");
-    const confirmPassword = formData.get("confirm_password");
+    const fullName = (formData.get("full_name") as string)?.trim();
+    const companyName = (formData.get("company_name") as string)?.trim() || "";
+    const companyType = (formData.get("company_type") as string)?.trim() || "Perusahaan Swasta";
+    const email = (formData.get("email") as string)?.trim();
+    const password = formData.get("password") as string;
+    const confirmPassword = formData.get("confirm_password") as string;
 
-    if (
-      typeof fullName !== "string" ||
-      typeof email !== "string" ||
-      typeof password !== "string" ||
-      typeof confirmPassword !== "string"
-    ) {
+    if (!fullName || !email || !password || !confirmPassword) {
       setError("Semua field wajib diisi.");
+      return;
+    }
+
+    if (data.role === "seeker" && !companyName) {
+      setError("Nama Perusahaan wajib diisi untuk Seeker.");
       return;
     }
 
@@ -156,10 +160,11 @@ function Step1({
       return;
     }
 
-    // Simpan data Step 1 ke state parent
     setData((prev) => ({
       ...prev,
       fullName,
+      companyName,
+      companyType,
       email,
       password,
       confirmPassword,
@@ -171,45 +176,121 @@ function Step1({
   return (
     <>
       {/* Header */}
-      <div className="flex flex-col items-center pt-6 pb-5 px-9 shrink-0">
-        <OpenNovaLogo className="mb-4" />
+      <div className="flex flex-col items-center pt-6 pb-4 px-9 shrink-0">
+        <OpenNovaLogo className="mb-3" />
 
-        <h1 className="text-[28px] font-bold tracking-[-0.02em] leading-[1.15] text-gray-900 text-center">
-          Daftar Sebagai Solver
+        <h1 className="text-[26px] font-bold tracking-[-0.02em] leading-[1.15] text-gray-900 text-center mb-3">
+          Daftar Akun Baru
         </h1>
+
+        {/* Role toggle */}
+        <div className="flex items-center p-1 bg-[#F0F3F6] rounded-full w-full max-w-[320px]">
+          <button
+            type="button"
+            onClick={() => setData((prev) => ({ ...prev, role: "solver" }))}
+            className={[
+              "flex-1 h-9 rounded-full text-[13px] font-semibold transition-all",
+              data.role === "solver"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500 hover:text-gray-800",
+            ].join(" ")}
+          >
+            Solver (Peserta)
+          </button>
+          <button
+            type="button"
+            onClick={() => setData((prev) => ({ ...prev, role: "seeker" }))}
+            className={[
+              "flex-1 h-9 rounded-full text-[13px] font-semibold transition-all",
+              data.role === "seeker"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500 hover:text-gray-800",
+            ].join(" ")}
+          >
+            Seeker (Perusahaan)
+          </button>
+        </div>
       </div>
 
       {/* Form */}
-      <form onSubmit={handleNext} className="px-9 pb-4 flex flex-col gap-4">
-        {/* Nama */}
-        <div>
-          <label htmlFor="reg-name" className={labelCls}>
-            Nama Lengkap
-          </label>
+      <form onSubmit={handleNext} className="px-9 pb-4 flex flex-col gap-3.5 overflow-y-auto max-h-[calc(100vh-220px)]">
+        {/* Seeker: Company Name & Type */}
+        {data.role === "seeker" ? (
+          <>
+            <div>
+              <label htmlFor="reg-company-name" className={labelCls}>
+                Nama Perusahaan / Organisasi
+              </label>
+              <input
+                id="reg-company-name"
+                name="company_name"
+                type="text"
+                defaultValue={data.companyName}
+                placeholder="Contoh: PT Telkom Indonesia"
+                required
+                className={inputCls}
+              />
+            </div>
 
-          <input
-            id="reg-name"
-            name="full_name"
-            type="text"
-            defaultValue={data.fullName}
-            placeholder="Masukkan nama.."
-            required
-            className={inputCls}
-          />
-        </div>
+            <div>
+              <label htmlFor="reg-company-type" className={labelCls}>
+                Kategori Perusahaan
+              </label>
+              <select
+                id="reg-company-type"
+                name="company_type"
+                defaultValue={data.companyType || "Perusahaan Swasta"}
+                className={inputCls}
+              >
+                <option value="BUMN">BUMN</option>
+                <option value="Perusahaan Swasta">Perusahaan Swasta</option>
+                <option value="UMKM">UMKM</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="reg-name" className={labelCls}>
+                Nama Perwakilan
+              </label>
+              <input
+                id="reg-name"
+                name="full_name"
+                type="text"
+                defaultValue={data.fullName}
+                placeholder="Masukkan nama perwakilan..."
+                required
+                className={inputCls}
+              />
+            </div>
+          </>
+        ) : (
+          <div>
+            <label htmlFor="reg-name" className={labelCls}>
+              Nama Lengkap
+            </label>
+            <input
+              id="reg-name"
+              name="full_name"
+              type="text"
+              defaultValue={data.fullName}
+              placeholder="Masukkan nama..."
+              required
+              className={inputCls}
+            />
+          </div>
+        )}
 
         {/* Email */}
         <div>
           <label htmlFor="reg-email" className={labelCls}>
             Email
           </label>
-
           <input
             id="reg-email"
             name="email"
             type="email"
             defaultValue={data.email}
-            placeholder="Masukkan email.."
+            placeholder="Masukkan email..."
             required
             className={inputCls}
           />
@@ -220,17 +301,15 @@ function Step1({
           <label htmlFor="reg-password" className={labelCls}>
             Password Baru
           </label>
-
           <div className="relative">
             <input
               id="reg-password"
               name="password"
               type={showPass ? "text" : "password"}
-              placeholder="Masukkan password.."
+              placeholder="Masukkan password..."
               required
               className={`${inputCls} pr-12`}
             />
-
             <button
               type="button"
               aria-label={showPass ? "Sembunyikan" : "Tampilkan"}
@@ -247,17 +326,15 @@ function Step1({
           <label htmlFor="reg-confirm" className={labelCls}>
             Konfirmasi Password
           </label>
-
           <div className="relative">
             <input
               id="reg-confirm"
               name="confirm_password"
               type={showConfirm ? "text" : "password"}
-              placeholder="Masukkan password.."
+              placeholder="Masukkan password..."
               required
               className={`${inputCls} pr-12`}
             />
-
             <button
               type="button"
               aria-label={showConfirm ? "Sembunyikan" : "Tampilkan"}
@@ -273,7 +350,7 @@ function Step1({
         {error && <p className="text-sm text-red-500">{error}</p>}
 
         {/* Footer */}
-        <div className="pt-2 flex flex-col items-center gap-4">
+        <div className="pt-2 flex flex-col items-center gap-3">
           <button
             type="submit"
             className="w-full h-[46px] rounded-full bg-[#E9201E] hover:bg-[#D91817] active:bg-[#B91413] text-white text-[15px] font-semibold transition-colors"
@@ -326,116 +403,108 @@ function Step2({
     setLoading(true);
 
     try {
-      // 1. Ambil data dari Step 2
       const formData = new FormData(event.currentTarget);
+      const phone = (formData.get("phone") as string)?.trim();
+      const birthday = (formData.get("birthday") as string)?.trim();
+      const institution = (formData.get("institution") as string)?.trim() || "";
 
-      const phone = formData.get("phone");
-      const birthday = formData.get("birthday");
-      const institution = formData.get("institution");
-
-      if (
-        typeof phone !== "string" ||
-        typeof birthday !== "string" ||
-        !phone.trim() ||
-        !birthday
-      ) {
-        setError("Nomor WhatsApp dan tanggal lahir wajib diisi.");
+      if (!phone || (!birthday && data.role === "solver")) {
+        setError("Semua field wajib diisi.");
+        setLoading(false);
         return;
       }
 
-      // 2. Gabungkan data Step 1 + Step 2
       const finalData = {
         ...data,
-        phone: phone.trim(),
-        birthday,
-        institution: typeof institution === "string" ? institution.trim() : "",
+        phone,
+        birthday: birthday || new Date().toISOString().split("T")[0],
+        institution,
       };
 
-      // Simpan ke state
       setData(finalData);
 
-      // 3. Buat Supabase client
       const supabase = createClient();
 
-      // 4. Buat user di Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: finalData.email,
         password: finalData.password,
       });
 
-      // Debug
-      console.log("USER:", authData.user);
-      console.log("SESSION:", authData.session);
-
-      // 5. Cek error Auth
       if (authError) {
-        console.error("Auth error:", authError);
         setError(authError.message);
+        setLoading(false);
         return;
       }
 
-      // 6. Pastikan user berhasil dibuat
       if (!authData.user) {
         setError("User gagal dibuat.");
+        setLoading(false);
         return;
       }
 
-      // 7. Pastikan user sudah authenticated
       if (!authData.session) {
-        console.error("Session tidak tersedia setelah signup.");
-
         setError(
-          "Akun berhasil dibuat, tetapi session belum tersedia. Pastikan Confirm Email dimatikan di Supabase.",
+          "Akun berhasil dibuat, tetapi session belum tersedia. Pastikan Confirm Email dimatikan di Supabase."
         );
-
+        setLoading(false);
         return;
       }
 
-      // 8. Simpan profile utama
+      // 1. Simpan profile utama
       const { error: profileError } = await supabase.from("profiles").insert({
         id: authData.user.id,
-        role: "solver",
+        role: finalData.role,
         full_name: finalData.fullName,
         phone: finalData.phone,
         avatar_url: null,
         birthday: finalData.birthday,
       });
 
-      // 9. Cek error profile
       if (profileError) {
         console.error("Profile error:", profileError);
-
         setError("Akun berhasil dibuat, tetapi profile gagal disimpan.");
-
+        setLoading(false);
         return;
       }
 
-      // 8b. Simpan solver_profile
-      const { error: solverProfileError } = await supabase
-        .from("solver_profiles")
-        .insert({
-          user_id: authData.user.id,
-          bio: null,
-          institution: finalData.institution || null,
-        });
+      // 2. Simpan role profile (solver vs seeker)
+      if (finalData.role === "seeker") {
+        const { error: seekerError } = await supabase
+          .from("seeker_profiles")
+          .insert({
+            user_id: authData.user.id,
+            company_name: finalData.companyName || finalData.fullName,
+            representative_name: finalData.fullName,
+            legal_document_path: "verified",
+            company_type: finalData.companyType || "Perusahaan Swasta",
+          });
 
-      if (solverProfileError) {
-        console.error("Solver profile error:", solverProfileError);
+        if (seekerError) {
+          console.error("Seeker profile error:", seekerError);
+        }
+      } else {
+        const { error: solverError } = await supabase
+          .from("solver_profiles")
+          .insert({
+            user_id: authData.user.id,
+            bio: null,
+            institution: finalData.institution || null,
+          });
+
+        if (solverError) {
+          console.error("Solver profile error:", solverError);
+        }
       }
 
-      // 10. Berhasil
-      console.log("Registrasi berhasil:", authData.user);
-
-      // Pindah ke login
       setSuccess(true);
 
       setTimeout(() => {
         onNavigate("LOGIN");
       }, 1500);
-    } catch (error) {
-      console.error("Register error:", error);
-
+    } catch (err) {
+      console.error("Register error:", err);
       setError("Terjadi kesalahan. Silakan coba lagi.");
+      setLoading(false);
     } finally {
       setLoading(false);
     }
@@ -444,11 +513,10 @@ function Step2({
   return (
     <>
       {/* Header */}
-      <div className="flex flex-col items-center pt-6 pb-5 px-9 shrink-0">
-        <OpenNovaLogo className="mb-4" />
-
-        <h1 className="text-[28px] font-bold tracking-[-0.02em] leading-[1.15] text-gray-900 text-center">
-          Daftar Sebagai Solver
+      <div className="flex flex-col items-center pt-6 pb-4 px-9 shrink-0">
+        <OpenNovaLogo className="mb-3" />
+        <h1 className="text-[26px] font-bold tracking-[-0.02em] leading-[1.15] text-gray-900 text-center">
+          {data.role === "seeker" ? "Daftar Sebagai Seeker" : "Daftar Sebagai Solver"}
         </h1>
       </div>
 
@@ -466,7 +534,6 @@ function Step2({
           <label htmlFor="reg-phone" className={labelCls}>
             Nomor Whatsapp
           </label>
-
           <input
             id="reg-phone"
             name="phone"
@@ -478,43 +545,44 @@ function Step2({
           />
         </div>
 
-        {/* Date of birth */}
-        <div>
-          <label htmlFor="reg-dob" className={labelCls}>
-            Tanggal Lahir
-          </label>
-
-          <div className="relative">
-            <input
-              id="reg-dob"
-              name="birthday"
-              type="date"
-              defaultValue={data.birthday}
-              required
-              className={`${inputCls} pr-12 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
-            />
-
-            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#A2A2A2]">
-              <CalendarIcon />
-            </span>
+        {/* Date of birth (Solver only) */}
+        {data.role === "solver" && (
+          <div>
+            <label htmlFor="reg-dob" className={labelCls}>
+              Tanggal Lahir
+            </label>
+            <div className="relative">
+              <input
+                id="reg-dob"
+                name="birthday"
+                type="date"
+                defaultValue={data.birthday}
+                required
+                className={`${inputCls} pr-12 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
+              />
+              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#A2A2A2]">
+                <CalendarIcon />
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Institusi / Universitas */}
-        <div>
-          <label htmlFor="reg-institution" className={labelCls}>
-            Institusi / Universitas <span className="text-gray-400 font-normal">(opsional)</span>
-          </label>
-
-          <input
-            id="reg-institution"
-            name="institution"
-            type="text"
-            defaultValue={data.institution}
-            placeholder="Contoh: Universitas Indonesia"
-            className={inputCls}
-          />
-        </div>
+        {/* Institusi (Solver only) */}
+        {data.role === "solver" && (
+          <div>
+            <label htmlFor="reg-institution" className={labelCls}>
+              Institusi / Universitas <span className="text-gray-400 font-normal">(opsional)</span>
+            </label>
+            <input
+              id="reg-institution"
+              name="institution"
+              type="text"
+              defaultValue={data.institution}
+              placeholder="Contoh: Universitas Indonesia"
+              className={inputCls}
+            />
+          </div>
+        )}
 
         {/* Error */}
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -550,7 +618,10 @@ function Step2({
 
 export default function RegisterFlow({ view, onNavigate }: RegisterFlowProps) {
   const [data, setData] = useState<RegisterData>({
+    role: "solver",
     fullName: "",
+    companyName: "",
+    companyType: "Perusahaan Swasta",
     email: "",
     password: "",
     confirmPassword: "",

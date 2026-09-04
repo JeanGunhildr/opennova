@@ -1,240 +1,277 @@
-﻿// app/solver/challenge/[id]/page.tsx
-// Next.js 16 dynamic route — params: Promise<{ id: string }>
-// generateStaticParams for build-time SSG.
+// app/solver/challenge/[id]/page.tsx
+// Next.js dynamic route — params: Promise<{ id: string }>
 
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import ChallengeHero from "@/component/dashboard/challenge-detail/ChallengeHero";
+import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import ChallengeDetailClient from "@/component/dashboard/challenge-detail/ChallengeDetailClient";
 import type { HeroStatus } from "@/component/dashboard/challenge-detail/ChallengeHero";
-import ChallengeMetadata from "@/component/dashboard/challenge-detail/ChallengeMetadata";
-import ChallengeTabs from "@/component/dashboard/challenge-detail/ChallengeTabs";
-import ChallengeContentArea from "@/component/dashboard/challenge-detail/ChallengeContentArea";
-import SeekerInfoCard from "@/component/dashboard/challenge-detail/SeekerInfoCard";
-import ChallengeActionWidget from "@/component/dashboard/challenge-detail/ChallengeActionWidget";
-import type { ChallengeActionState } from "@/component/dashboard/challenge-detail/ChallengeActionWidget";
+import type { ChallengeActionState, CaptainTeamOption } from "@/component/dashboard/challenge-detail/ChallengeActionWidget";
 
-// ── Static params ──────────────────────────────────────────
-export async function generateStaticParams() {
-  return [
-    { id: "dc-1" },
-    { id: "dc-2" },
-    { id: "dc-3" },
-    { id: "dc-demo-winner" },
-    { id: "dc-demo-member" },
-    { id: "dc-demo-passed" },
-  ];
-}
+export const dynamic = "force-dynamic";
 
-// ── Mock challenge data ────────────────────────────────────
-interface MockChallenge {
-  category: string;
-  title: string;
-  company: string;
-  companyInitials: string;
-  companyAbout: string;
-  companyIndustry: string;
-  companyWebsite: string;
-  reward: string;
-  deadline: string;
-  participantCount: number;
-  status: string;
-  description: string;
-  heroStatus: HeroStatus;
-  actionState: ChallengeActionState;
-  teamName?: string;
-  winnerName?: string;
-}
-
-const BASE: Omit<MockChallenge, "title" | "company" | "companyInitials" | "companyAbout" | "companyIndustry" | "companyWebsite" | "reward" | "deadline" | "participantCount" | "actionState" | "heroStatus"> = {
-  category: "Teknologi & Rekayasa",
-  status: "Aktif",
-  description:
-    "Telkom Indonesia mencari inovasi terbaik untuk solusi monitoring infrastruktur jaringan yang mampu mendeteksi anomali secara real-time menggunakan kecerdasan buatan.\n\nSolusi yang diharapkan dapat membantu tim operasional untuk merespons insiden lebih cepat, mengurangi downtime, dan meningkatkan kualitas layanan secara keseluruhan.",
-};
-
-const MOCK_CHALLENGES: Record<string, MockChallenge> = {
-  "dc-1": {
-    ...BASE,
-    title: "Solusi Monitoring Infrastruktur Jaringan Berbasis AI Real-Time",
-    company: "Telkom Indonesia",
-    companyInitials: "TI",
-    companyAbout:
-      "Telkom Indonesia adalah perusahaan telekomunikasi terbesar di Indonesia, menyediakan layanan jaringan dan solusi digital untuk jutaan pelanggan.",
-    companyIndustry: "Telekomunikasi",
-    companyWebsite: "https://www.telkom.co.id",
-    reward: "Rp 50.000.000",
-    deadline: "17 Nov 2026",
-    participantCount: 312,
-    heroStatus: { label: "48 hari lagi", style: "deadline" },
-    actionState: "ACTIVE_NOT_JOINED",
-  },
-  "dc-2": {
-    category: "Lingkungan",
-    status: "Aktif",
-    title: "Inovasi Pengurangan Limbah Plastik pada Ekosistem Pesisir dan Laut",
-    company: "Pertamina",
-    companyInitials: "PT",
-    companyAbout:
-      "Pertamina adalah perusahaan energi nasional yang berkomitmen pada transformasi energi berkelanjutan dan perlindungan lingkungan hidup.",
-    companyIndustry: "Energi & Lingkungan",
-    companyWebsite: "https://www.pertamina.com",
-    reward: "Rp 7.000.000",
-    deadline: "30 Okt 2026",
-    participantCount: 187,
-    description:
-      "Pertamina mengundang inovator muda untuk merancang solusi pengurangan limbah plastik yang berdampak nyata pada ekosistem pesisir Indonesia.\n\nProposal dapat mencakup teknologi daur ulang, sistem pengumpulan limbah komunitas, atau pendekatan berbasis kebijakan dan edukasi.",
-    heroStatus: { label: "48 hari lagi", style: "deadline" },
-    actionState: "ACTIVE_JOINED_TEAM_LEADER",
-    teamName: "Inovasi Nusantara",
-  },
-  "dc-3": {
-    category: "Kesehatan",
-    status: "Aktif",
-    title: "Platform Telemedisin Berbasis AI untuk Layanan Kesehatan Pelosok",
-    company: "Kimia Farma",
-    companyInitials: "KF",
-    companyAbout:
-      "Kimia Farma adalah perusahaan farmasi dan layanan kesehatan terintegrasi, berkomitmen untuk meningkatkan akses kesehatan di seluruh Indonesia.",
-    companyIndustry: "Kesehatan & Farmasi",
-    companyWebsite: "https://www.kimiafarma.co.id",
-    reward: "Rp 35.000.000",
-    deadline: "5 Des 2026",
-    participantCount: 241,
-    description:
-      "Kimia Farma membuka challenge untuk platform telemedisin yang mampu menjangkau daerah-daerah terpencil dengan keterbatasan akses internet dan fasilitas kesehatan.\n\nSolusi harus mempertimbangkan keterbatasan infrastruktur, literasi digital masyarakat, dan kebutuhan medis yang beragam di pelosok nusantara.",
-    heroStatus: { label: "48 hari lagi", style: "deadline" },
-    actionState: "CLOSED_JOINED",
-    teamName: "Tim Solusi Kesehatan",
-  },
-  "dc-demo-winner": {
-    ...BASE,
-    title: "Demo: Pemenang Challenge",
-    company: "Telkom Indonesia",
-    companyInitials: "TI",
-    companyAbout: "Demo state: CLOSED_WINNER",
-    companyIndustry: "Telekomunikasi",
-    companyWebsite: "https://www.telkom.co.id",
-    reward: "Rp 50.000.000",
-    deadline: "Selesai",
-    participantCount: 312,
-    heroStatus: { label: "Pemenang", style: "winner" },
-    actionState: "CLOSED_WINNER",
-    teamName: "Inovasi Nusantara",
-    winnerName: "Irfan Satya",
-  },
-  "dc-demo-member": {
-    ...BASE,
-    title: "Demo: Anggota Tim",
-    company: "Pertamina",
-    companyInitials: "PT",
-    companyAbout: "Demo state: ACTIVE_JOINED_TEAM_MEMBER",
-    companyIndustry: "Energi",
-    companyWebsite: "https://www.pertamina.com",
-    reward: "Rp 25.000.000",
-    deadline: "30 Nov 2026",
-    participantCount: 145,
-    heroStatus: { label: "48 hari lagi", style: "deadline" },
-    actionState: "ACTIVE_JOINED_TEAM_MEMBER",
-    teamName: "Green Future Lab",
-  },
-  "dc-demo-passed": {
-    ...BASE,
-    title: "Demo: Lolos Penilaian Ahli",
-    company: "Kimia Farma",
-    companyInitials: "KF",
-    companyAbout: "Demo state: CLOSED_PASSED_EXPERT_REVIEW",
-    companyIndustry: "Kesehatan",
-    companyWebsite: "https://www.kimiafarma.co.id",
-    reward: "Rp 35.000.000",
-    deadline: "Selesai",
-    participantCount: 201,
-    heroStatus: { label: "Lolos Penjurian Ahli", style: "success" },
-    actionState: "CLOSED_PASSED_EXPERT_REVIEW",
-  },
-};
-
-const FALLBACK = MOCK_CHALLENGES["dc-1"];
-
-// ── Page ───────────────────────────────────────────────────
 export default async function ChallengeDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const challenge = MOCK_CHALLENGES[id] ?? FALLBACK;
+
+  // Default participation state
+  let userParticipationState: ChallengeActionState = "ACTIVE_NOT_JOINED";
+  let userTeamName = "";
+  let captainTeams: CaptainTeamOption[] = [];
+  let existingSubmissionUrl = "";
+
+  const supabase = await createClient();
+
+  // ── Fetch Challenge detail from Supabase DB ──────────────
+  const { data: dbCh, error: dbError } = await supabase
+    .from("challenges")
+    .select(`
+      id,
+      name,
+      description,
+      thumbnail_path,
+      prize_pool,
+      deadline,
+      status,
+      expert_weight,
+      pitch_weight,
+      categories (
+        id,
+        name
+      ),
+      seeker_profiles (
+        company_name,
+        representative_name,
+        company_type,
+        company_description,
+        website,
+        legal_document_path
+      ),
+      challenge_objectives (
+        id,
+        content
+      ),
+      challenge_requirements (
+        id,
+        content
+      ),
+      judging_criteria (
+        id,
+        stage,
+        name,
+        description
+      ),
+      challenge_timelines (
+        id,
+        title,
+        start_date,
+        end_date
+      ),
+      challenge_entries (
+        id
+      )
+    `)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (dbError) {
+    console.error("Error fetching challenge detail from DB:", dbError);
+  }
+
+  // Challenge not found in DB → 404
+  if (!dbCh) {
+    notFound();
+  }
+
+  // ── Map DB data → display values ──────────────────────────
+  const categoryName = Array.isArray(dbCh.categories)
+    ? dbCh.categories[0]?.name
+    : (dbCh.categories as any)?.name || "Umum";
+
+  const seekerObj = Array.isArray(dbCh.seeker_profiles)
+    ? dbCh.seeker_profiles[0]
+    : (dbCh.seeker_profiles as any);
+
+  const companyName = seekerObj?.company_name || "Penyelenggara Challenge";
+
+  const initials = companyName
+    .split(" ")
+    .map((w: string) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "PR";
+
+  const deadlineObj = dbCh.deadline ? new Date(dbCh.deadline) : null;
+  const formattedDeadline = deadlineObj
+    ? deadlineObj.toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "Belum ditentukan";
+
+  const prize = Number(dbCh.prize_pool) || 0;
+  const formattedReward =
+    prize > 0 ? `Rp ${prize.toLocaleString("id-ID")}` : "—";
+
+  const participantCount = Array.isArray(dbCh.challenge_entries)
+    ? dbCh.challenge_entries.length
+    : 0;
+
+  // Hero status badge — derived from deadline or challenge status
+  let heroStatus: HeroStatus;
+  const now = new Date();
+  if (deadlineObj && deadlineObj > now) {
+    const diffMs = deadlineObj.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    heroStatus = {
+      label: diffDays <= 7 ? `${diffDays} hari lagi` : formattedDeadline,
+      style: "deadline",
+    };
+  } else if (
+    (dbCh.status || "").toLowerCase() === "published" ||
+    (dbCh.status || "").toLowerCase() === "active" ||
+    (dbCh.status || "").toLowerCase() === "ongoing"
+  ) {
+    heroStatus = { label: "Dibuka", style: "success" };
+  } else {
+    heroStatus = { label: formattedDeadline, style: "deadline" };
+  }
+
+  const objectives = dbCh.challenge_objectives || [];
+  const requirements = dbCh.challenge_requirements || [];
+  const criteria = dbCh.judging_criteria || [];
+  const timelines = dbCh.challenge_timelines || [];
+
+  // ── Fetch User Auth & participation state ─────────────────
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      // 1. Fetch user's captain teams
+      const { data: myCaptainTeamsData } = await supabase
+        .from("teams")
+        .select(`
+          id,
+          name,
+          team_members (id)
+        `)
+        .eq("captain_id", user.id)
+        .eq("is_active", true);
+
+      if (myCaptainTeamsData) {
+        captainTeams = myCaptainTeamsData.map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          memberCount: Array.isArray(t.team_members) ? t.team_members.length : 1,
+        }));
+      }
+
+      // 2. Fetch individual challenge entry
+      const { data: indEntry } = await supabase
+        .from("challenge_entries")
+        .select(`
+          id,
+          status,
+          participation_type,
+          submissions (
+            drive_url
+          )
+        `)
+        .eq("challenge_id", id)
+        .eq("solver_id", user.id)
+        .maybeSingle();
+
+      if (indEntry) {
+        userParticipationState = "ACTIVE_JOINED_INDIVIDUAL";
+        const subDriveUrl = Array.isArray(indEntry.submissions)
+          ? indEntry.submissions[0]?.drive_url
+          : (indEntry.submissions as any)?.drive_url;
+        existingSubmissionUrl = subDriveUrl || "";
+      } else {
+        // Cek pendaftaran tim
+        const { data: myMemberships } = await supabase
+          .from("team_members")
+          .select("team_id")
+          .eq("user_id", user.id)
+          .eq("status", "active");
+
+        const userTeamIds = (myMemberships || []).map((m: any) => m.team_id);
+
+        if (userTeamIds.length > 0) {
+          const { data: teamEntry } = await supabase
+            .from("challenge_entries")
+            .select(`
+              id,
+              status,
+              team_id,
+              team_name_snapshot,
+              teams (captain_id),
+              submissions (
+                drive_url
+              )
+            `)
+            .eq("challenge_id", id)
+            .in("team_id", userTeamIds)
+            .maybeSingle();
+
+          if (teamEntry) {
+            userTeamName = teamEntry.team_name_snapshot || "Tim Anda";
+            const subDriveUrl = Array.isArray(teamEntry.submissions)
+              ? teamEntry.submissions[0]?.drive_url
+              : (teamEntry.submissions as any)?.drive_url;
+            existingSubmissionUrl = subDriveUrl || "";
+
+            const captainId = (teamEntry.teams as any)?.captain_id;
+
+            if (captainId === user.id) {
+              userParticipationState = "ACTIVE_JOINED_TEAM_LEADER";
+            } else {
+              userParticipationState = "ACTIVE_JOINED_TEAM_MEMBER";
+            }
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Error fetching user participation state:", err);
+  }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-10 py-8 lg:py-9">
-
-      {/* ── Breadcrumb / back ───────────────────────────── */}
-      <div className="flex items-center gap-2 mb-5">
-        <Link
-          href="/solver"
-          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-white border border-gray-300 text-[12px] font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-        >
-          <ArrowLeft size={13} strokeWidth={1.8} />
-          Kembali
-        </Link>
-        <span className="text-[12px] text-gray-400">Jelajah</span>
-        <span className="text-[12px] text-gray-400">/</span>
-        <span className="text-[12px] font-semibold text-gray-700 truncate max-w-[300px]">
-          {challenge.title}
-        </span>
-      </div>
-
-      {/*
-       * Two-column content grid
-       * Left : Hero → Metadata → Tabs → ContentArea
-       * Right: sticky sidebar (lg+) — SeekerInfoCard + ChallengeActionWidget
-       */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start max-w-[1160px]">
-
-        {/* ── Left column ─────────────────────────────── */}
-        <div className="flex flex-col gap-5 min-w-0">
-          <ChallengeHero
-            id={id}
-            category={challenge.category}
-            title={challenge.title}
-            company={challenge.company}
-            companyInitials={challenge.companyInitials}
-            verified
-            heroStatus={challenge.heroStatus}
-          />
-
-          <ChallengeMetadata
-            reward={challenge.reward}
-            deadline={challenge.deadline}
-            participantCount={challenge.participantCount}
-            status={challenge.status}
-          />
-
-          <ChallengeTabs />
-
-          <ChallengeContentArea description={challenge.description} />
-        </div>
-
-        {/* ── Right column (sticky on lg+) ─────────────── */}
-        <aside className="flex flex-col gap-4 lg:sticky lg:top-6">
-          <SeekerInfoCard
-            companyName={challenge.company}
-            companyInitials={challenge.companyInitials}
-            industry={challenge.companyIndustry}
-            about={challenge.companyAbout}
-            website={challenge.companyWebsite}
-            verified
-            reward={challenge.reward}
-            deadline={challenge.deadline}
-          />
-
-          <ChallengeActionWidget
-            challengeId={id}
-            state={challenge.actionState}
-            teamName={challenge.teamName}
-            winnerName={challenge.winnerName}
-          />
-        </aside>
-      </div>
-    </div>
+    <ChallengeDetailClient
+      id={id}
+      category={categoryName}
+      title={dbCh.name}
+      company={companyName}
+      companyInitials={initials}
+      companyAbout={seekerObj?.company_description || ""}
+      companyIndustry={seekerObj?.company_type || categoryName}
+      companyWebsite={seekerObj?.website || ""}
+      reward={formattedReward}
+      deadline={formattedDeadline}
+      participantCount={participantCount}
+      status={dbCh.status || "published"}
+      description={dbCh.description || "Deskripsi tantangan belum tersedia."}
+      heroStatus={heroStatus}
+      thumbnailPath={dbCh.thumbnail_path}
+      objectives={objectives}
+      requirements={requirements}
+      criteria={criteria}
+      timelines={timelines}
+      expertWeight={Number(dbCh.expert_weight) || 50}
+      pitchWeight={Number(dbCh.pitch_weight) || 50}
+      verified={Boolean(seekerObj?.legal_document_path)}
+      jenisPerusahaan={seekerObj?.company_type || null}
+      deskripsiPerusahaan={seekerObj?.company_description || null}
+      alamatDomain={seekerObj?.website || null}
+      userParticipationState={userParticipationState}
+      userTeamName={userTeamName}
+      captainTeams={captainTeams}
+      existingSubmissionUrl={existingSubmissionUrl}
+    />
   );
 }
