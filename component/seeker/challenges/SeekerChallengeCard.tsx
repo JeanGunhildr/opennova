@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { Bookmark, Users } from "lucide-react";
+import { Users } from "lucide-react";
 
 export type ChallengeLifecycle = "open" | "expert" | "pitching" | "winner";
 
@@ -12,21 +12,22 @@ export interface SeekerChallenge {
   participants: number;
   publishedDate: string;
   lifecycle: ChallengeLifecycle;
+  thumbnailUrl?: string | null;
   bgFrom: string;
   bgVia: string;
   bgTo: string;
 }
 
 const LIFECYCLE_MAP: Record<ChallengeLifecycle, { label: string; bg: string; text: string }> = {
-  open:    { label: "Challenge Dibuka",      bg: "#143520",              text: "#54D67A" },
-  expert:  { label: "Penjurian Ahli",        bg: "#393713",              text: "#D8C83A" },
-  pitching:{ label: "Pitching Final",        bg: "rgba(227,0,0,0.14)",   text: "#FF8A8A" },
-  winner:  { label: "Pengumuman Pemenang",   bg: "rgba(84,214,122,0.12)",text: "#54D67A" },
+  open:     { label: "Challenge Dibuka",      bg: "#143520",              text: "#54D67A" },
+  expert:   { label: "Penjurian Ahli",        bg: "#393713",              text: "#D8C83A" },
+  pitching: { label: "Pitching Final",        bg: "rgba(227,0,0,0.14)",   text: "#FF8A8A" },
+  winner:   { label: "Pengumuman Pemenang",   bg: "rgba(84,214,122,0.12)",text: "#54D67A" },
 };
 
 export default function SeekerChallengeCard({ challenge }: { challenge: SeekerChallenge }) {
-  const { title, category, reward, participants, publishedDate, lifecycle, bgFrom, bgVia, bgTo } = challenge;
-  const ls = LIFECYCLE_MAP[lifecycle];
+  const { title, category, reward, participants, publishedDate, lifecycle, thumbnailUrl, bgFrom, bgVia, bgTo } = challenge;
+  const ls = LIFECYCLE_MAP[lifecycle] || LIFECYCLE_MAP.open;
 
   return (
     <article
@@ -39,29 +40,28 @@ export default function SeekerChallengeCard({ challenge }: { challenge: SeekerCh
     >
       {/* Media / image header */}
       <div
-        className="relative flex-shrink-0"
+        className="relative flex-shrink-0 overflow-hidden"
         style={{
-          height: "114px",
+          height: "124px",
           background: `linear-gradient(135deg, ${bgFrom} 0%, ${bgVia} 50%, ${bgTo} 100%)`,
         }}
       >
+        {thumbnailUrl && (
+          <img
+            src={thumbnailUrl}
+            alt={title}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
+
         {/* Status pill */}
         <span
-          className="absolute top-[10px] left-[10px] inline-flex items-center h-[28px] px-[10px] rounded-full text-[12px] font-semibold"
+          className="absolute top-[10px] left-[10px] inline-flex items-center h-[28px] px-[10px] rounded-full text-[12px] font-semibold z-10"
           style={{ background: ls.bg, color: ls.text }}
         >
           {ls.label}
         </span>
-
-        {/* Bookmark button */}
-        <button
-          type="button"
-          className="absolute top-[10px] right-[10px] flex items-center justify-center rounded-full bg-white hover:bg-gray-100 transition-colors"
-          style={{ width: "32px", height: "32px" }}
-          aria-label="Simpan challenge"
-        >
-          <Bookmark size={14} strokeWidth={2} className="text-[#171717]" />
-        </button>
       </div>
 
       {/* Card body */}
@@ -105,8 +105,10 @@ export default function SeekerChallengeCard({ challenge }: { challenge: SeekerCh
         </div>
         <button
           type="button"
-          className="inline-flex items-center h-9 px-[14px] rounded-full text-[13px] font-semibold bg-white hover:bg-gray-100 transition-colors"
-          style={{ color: "#171717" }}
+          disabled
+          aria-disabled="true"
+          title="Halaman Kelola sedang dalam tahap pengembangan"
+          className="inline-flex items-center h-9 px-[14px] rounded-full text-[13px] font-semibold bg-[#232323] text-[#737373] border border-[#373737] cursor-not-allowed select-none opacity-80"
         >
           Kelola Challenge
         </button>

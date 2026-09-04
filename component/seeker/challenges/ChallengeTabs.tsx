@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export type TabId = "all" | "active" | "completed";
 
@@ -8,24 +8,33 @@ interface Tab {
   count: number;
 }
 
-const TABS: Tab[] = [
-  { id: "all",       label: "Semua Challenge", count: 7 },
-  { id: "active",    label: "Aktif",           count: 5 },
-  { id: "completed", label: "Selesai",         count: 2 },
-];
-
 interface ChallengeTabsProps {
   activeTab: TabId;
   onTabChange: (id: TabId) => void;
+  counts?: {
+    all: number;
+    active: number;
+    completed: number;
+  };
 }
 
-export default function ChallengeTabs({ activeTab, onTabChange }: ChallengeTabsProps) {
+export default function ChallengeTabs({
+  activeTab,
+  onTabChange,
+  counts,
+}: ChallengeTabsProps) {
+  const tabs: Tab[] = [
+    { id: "all",       label: "Semua Challenge", count: counts?.all ?? 0 },
+    { id: "active",    label: "Aktif",           count: counts?.active ?? 0 },
+    { id: "completed", label: "Selesai",         count: counts?.completed ?? 0 },
+  ];
+
   return (
     <div
       className="flex items-stretch gap-[34px] overflow-x-auto overflow-y-hidden mt-7"
       style={{ borderBottom: "1px solid #373737", height: "52px" }}
     >
-      {TABS.map(({ id, label, count }) => {
+      {tabs.map(({ id, label, count }) => {
         const isActive = activeTab === id;
         return (
           <button

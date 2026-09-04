@@ -1,89 +1,21 @@
-﻿import type { SeekerChallenge } from "./SeekerChallengeCard";
+"use client";
+
+import Link from "next/link";
+import { Plus, Inbox } from "lucide-react";
+import type { SeekerChallenge } from "./SeekerChallengeCard";
 import SeekerChallengeCard from "./SeekerChallengeCard";
 import type { TabId } from "./ChallengeTabs";
-
-const ALL_CHALLENGES: SeekerChallenge[] = [
-  {
-    id: "sc-1",
-    title: "Inovasi AI untuk Monitoring Jaringan Fiber Optik Nasional",
-    category: "Teknologi & Rekayasa",
-    reward: "Rp 75.000.000",
-    participants: 83,
-    publishedDate: "12 Agu 2026",
-    lifecycle: "open",
-    bgFrom: "#0d1a2b", bgVia: "#1a2f4a", bgTo: "#0a1520",
-  },
-  {
-    id: "sc-2",
-    title: "Platform Manajemen Energi Terbarukan Smart Grid Nasional",
-    category: "Energi",
-    reward: "Rp 50.000.000",
-    participants: 41,
-    publishedDate: "5 Agu 2026",
-    lifecycle: "expert",
-    bgFrom: "#1a1a0a", bgVia: "#2e2e12", bgTo: "#141408",
-  },
-  {
-    id: "sc-3",
-    title: "Solusi Logistik Last-Mile Berbasis Computer Vision & AI",
-    category: "Logistik",
-    reward: "Rp 40.000.000",
-    participants: 12,
-    publishedDate: "20 Jul 2026",
-    lifecycle: "pitching",
-    bgFrom: "#1a0a1a", bgVia: "#2e1230", bgTo: "#120814",
-  },
-  {
-    id: "sc-4",
-    title: "Digitalisasi Layanan Pelanggan Berbasis Natural Language Processing",
-    category: "Digital & AI",
-    reward: "Rp 60.000.000",
-    participants: 156,
-    publishedDate: "1 Agu 2026",
-    lifecycle: "open",
-    bgFrom: "#0a1a2b", bgVia: "#152a40", bgTo: "#081520",
-  },
-  {
-    id: "sc-5",
-    title: "Pengembangan Sistem Pertanian Presisi Berbasis IoT Nasional",
-    category: "Agrikultur",
-    reward: "Rp 35.000.000",
-    participants: 98,
-    publishedDate: "15 Jul 2026",
-    lifecycle: "open",
-    bgFrom: "#0a1a0a", bgVia: "#142814", bgTo: "#081408",
-  },
-  {
-    id: "sc-6",
-    title: "Inovasi Fintech untuk Inklusi Keuangan UMKM Indonesia",
-    category: "Keuangan",
-    reward: "Rp 80.000.000",
-    participants: 62,
-    publishedDate: "28 Jun 2026",
-    lifecycle: "winner",
-    bgFrom: "#1a0d0d", bgVia: "#2a1515", bgTo: "#140a0a",
-  },
-  {
-    id: "sc-7",
-    title: "Pengembangan Aplikasi Telemedisin Bertenaga AI untuk Daerah 3T",
-    category: "Kesehatan",
-    reward: "Rp 45.000.000",
-    participants: 77,
-    publishedDate: "10 Jun 2026",
-    lifecycle: "winner",
-    bgFrom: "#0a1520", bgVia: "#0d1f2e", bgTo: "#070f18",
-  },
-];
 
 const ACTIVE_LIFECYCLES = new Set(["open", "expert", "pitching"]);
 const COMPLETED_LIFECYCLES = new Set(["winner"]);
 
 interface SeekerChallengeGridProps {
   activeTab: TabId;
+  challenges: SeekerChallenge[];
 }
 
-export default function SeekerChallengeGrid({ activeTab }: SeekerChallengeGridProps) {
-  const filtered = ALL_CHALLENGES.filter(c => {
+export default function SeekerChallengeGrid({ activeTab, challenges }: SeekerChallengeGridProps) {
+  const filtered = challenges.filter((c) => {
     if (activeTab === "all") return true;
     if (activeTab === "active") return ACTIVE_LIFECYCLES.has(c.lifecycle);
     if (activeTab === "completed") return COMPLETED_LIFECYCLES.has(c.lifecycle);
@@ -91,22 +23,53 @@ export default function SeekerChallengeGrid({ activeTab }: SeekerChallengeGridPr
   });
 
   if (filtered.length === 0) {
+    const isAll = activeTab === "all";
+    const isActive = activeTab === "active";
+
     return (
       <div
-        className="flex flex-col items-center justify-center py-20 rounded-[18px] mt-7"
+        className="flex flex-col items-center justify-center py-20 px-6 rounded-[18px] mt-7 text-center"
         style={{ background: "#191919", border: "1px solid #373737" }}
       >
-        <p className="text-white font-semibold text-[16px]">Tidak ada challenge</p>
-        <p className="text-[14px] mt-1" style={{ color: "#737373" }}>
-          Belum ada challenge di kategori ini.
+        <div
+          className="w-14 h-14 rounded-full flex items-center justify-center mb-4"
+          style={{ background: "#232323", border: "1px solid #373737" }}
+        >
+          <Inbox size={24} className="text-[#737373]" strokeWidth={1.7} />
+        </div>
+
+        <p className="text-white font-bold text-[18px]">
+          {isAll
+            ? "Belum Ada Challenge"
+            : isActive
+            ? "Tidak Ada Challenge Aktif"
+            : "Tidak Ada Challenge Selesai"}
         </p>
+
+        <p className="text-[14px] mt-1.5 max-w-[420px] leading-[1.5]" style={{ color: "#737373" }}>
+          {isAll
+            ? "Anda belum mempublikasikan challenge apa pun. Mulai buat challenge pertama Anda untuk menemukan solusi terbaik dari inovator."
+            : isActive
+            ? "Saat ini tidak ada challenge yang sedang berlangsung di tahap pembukaan atau penjurian."
+            : "Belum ada challenge yang telah menyelesaikan seluruh tahapan penilaian akhir."}
+        </p>
+
+        {isAll && (
+          <Link
+            href="/seeker/challenges/new"
+            className="inline-flex items-center gap-2 h-11 px-5 rounded-full text-white text-[13px] font-semibold bg-[#E30000] hover:bg-[#CC0000] transition-colors mt-6 shadow-[0_4px_14px_rgba(227,0,0,0.3)]"
+          >
+            <Plus size={16} strokeWidth={2.2} />
+            Buat Challenge Pertama
+          </Link>
+        )}
       </div>
     );
   }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-7">
-      {filtered.map(c => (
+      {filtered.map((c) => (
         <SeekerChallengeCard key={c.id} challenge={c} />
       ))}
     </div>
