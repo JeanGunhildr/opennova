@@ -1,10 +1,12 @@
-﻿"use client";
+"use client";
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 import { OpenNovaLogo } from "@/component/landing/Logo";
 import type { AuthView } from "./AuthModal";
+import PopupToast, { type ToastNotification } from "@/component/ui/PopupToast";
 
 import { createClient } from "@/lib/supabase/client";
 
@@ -51,52 +53,92 @@ export default function LoginForm({ onNavigate }: LoginFormProps) {
 
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<ToastNotification | null>(null);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setError("");
+    setLoading(true);
 
-    // 1. Ambil data dari form
-    const formData = new FormData(event.currentTarget);
+    try {
+      // 1. Ambil data dari form
+      const formData = new FormData(event.currentTarget);
+      const email = formData.get("email");
+      const password = formData.get("password");
 
-    const email = formData.get("email");
-    const password = formData.get("password");
+      // 2. Pastikan nilainya string
+      if (typeof email !== "string" || typeof password !== "string") {
+        const msg = "Email dan password wajib diisi.";
+        setError(msg);
+        setToast({ type: "error", title: "Validasi Gagal", message: msg });
+        setLoading(false);
+        return;
+      }
 
-    // 2. Pastikan nilainya string
-    if (typeof email !== "string" || typeof password !== "string") {
-      setError("Email dan password wajib diisi.");
-      return;
-    }
+      // 3. Buat Supabase client
+      const supabase = createClient();
 
-    // 3. Buat Supabase client
-    const supabase = createClient();
+      // 4. Login ke Supabase Auth
+      const { data, error: signInError } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-    // 4. Login ke Supabase Auth
-    const { data, error: signInError } =
-      await supabase.auth.signInWithPassword({
-        email,
-        password,
+      // 5. Kalau login gagal
+      if (signInError) {
+        console.error("Login gagal:", signInError);
+        const userMsg =
+          signInError.message === "Invalid login credentials"
+            ? "Email atau kata sandi tidak cocok. Silakan periksa kembali."
+            : signInError.message;
+
+        setError(userMsg);
+        setToast({
+          type: "error",
+          title: "Gagal Masuk",
+          message: userMsg,
+        });
+        setLoading(false);
+        return;
+      }
+
+      // 6. Pastikan session berhasil dibuat
+      if (!data.session || !data.user) {
+        const msg = "Login berhasil, tetapi sesi tidak ditemukan.";
+        setError(msg);
+        setToast({ type: "error", title: "Sesi Gagal", message: msg });
+        setLoading(false);
+        return;
+      }
+
+      // 7. Cek role pengguna di database profiles
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .maybeSingle();
+
+      const targetPath = profile?.role === "seeker" ? "/seeker" : "/solver";
+
+      setToast({
+        type: "success",
+        title: "Berhasil Masuk!",
+        message: "Selamat datang kembali di OpenNova. Mengarahkan...",
       });
 
-    // 5. Kalau login gagal
-    if (signInError) {
-      console.error("Login gagal:", signInError);
-
-      setError(signInError.message);
-      return;
+      setTimeout(() => {
+        router.replace(targetPath);
+        router.refresh();
+      }, 1000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Terjadi kesalahan pada sistem.";
+      setError(msg);
+      setToast({ type: "error", title: "Kesalahan Sistem", message: msg });
+      setLoading(false);
     }
-
-    // 6. Pastikan session berhasil dibuat
-    if (!data.session) {
-      setError("Login berhasil, tetapi session tidak ditemukan.");
-      return;
-    }
-
-    // 7. Login berhasil
-    console.log("Login berhasil:", data.user);
-    router.replace("/solver");
-    router.refresh();
   }
 
   return (
@@ -200,9 +242,17 @@ export default function LoginForm({ onNavigate }: LoginFormProps) {
         {/* CTA */}
         <button
           type="submit"
-          className="w-full h-[46px] rounded-full bg-[#E9201E] hover:bg-[#D91817] active:bg-[#B91413] text-white text-[15px] font-semibold transition-colors"
+          disabled={loading}
+          className="w-full h-[46px] rounded-full bg-[#E9201E] hover:bg-[#D91817] active:bg-[#B91413] text-white text-[15px] font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(233,32,30,0.3)]"
         >
-          Masuk
+          {loading ? (
+            <>
+              <Loader2 size={18} className="animate-spin" />
+              <span>Memproses...</span>
+            </>
+          ) : (
+            <span>Masuk</span>
+          )}
         </button>
       </form>
 
@@ -220,6 +270,9 @@ export default function LoginForm({ onNavigate }: LoginFormProps) {
           </button>
         </p>
       </div>
+
+      {/* Popup Notification */}
+      <PopupToast toast={toast} onDismiss={() => setToast(null)} />
     </>
   );
 }

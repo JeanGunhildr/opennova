@@ -17,6 +17,8 @@ export default async function SeekerDashboardPage() {
         redirect('/solver');
     } 
 
+    // console.log(user);
+
   return (
     <div
       className="min-h-screen pt-14 lg:pt-0"

@@ -1,19 +1,20 @@
-﻿"use client";
-import { AlertTriangle, CheckCircle2 } from "lucide-react";
+"use client";
+import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 
 interface PublishChallengeModalProps {
   mode: "guidance" | "confirmation";
   missingItems?: string[];
+  isSubmitting?: boolean;
   onClose: () => void;
   onConfirm: () => void;
 }
 
-export default function PublishChallengeModal({ mode, missingItems = [], onClose, onConfirm }: PublishChallengeModalProps) {
+export default function PublishChallengeModal({ mode, missingItems = [], isSubmitting = false, onClose, onConfirm }: PublishChallengeModalProps) {
   const isGuidance = mode === "guidance";
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.58)", backdropFilter: "blur(4px)" }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      onClick={e => { if (e.target === e.currentTarget && !isSubmitting) onClose(); }}>
       <div className="flex flex-col items-center text-center"
         style={{ width: "460px", maxWidth: "calc(100vw - 32px)", background: "#1F1F1F", border: "1px solid #373737", borderRadius: "18px", padding: "28px", boxShadow: "0 20px 60px rgba(0,0,0,0.45)" }}>
         {/* Icon */}
@@ -57,15 +58,33 @@ export default function PublishChallengeModal({ mode, missingItems = [], onClose
         {/* Actions */}
         <div className="grid gap-[10px] mt-6 w-full" style={{ gridTemplateColumns: isGuidance ? "1fr" : "1fr 1fr" }}>
           {!isGuidance && (
-            <button onClick={onClose} className="inline-flex items-center justify-center rounded-full text-white text-[14px] font-semibold transition-colors"
+            <button
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="inline-flex items-center justify-center rounded-full text-white text-[14px] font-semibold transition-colors disabled:opacity-50"
               style={{ height: "44px", background: "#232323", border: "1px solid #5C5C5C" }}
               onMouseEnter={e => (e.currentTarget.style.background = "#373737")}
-              onMouseLeave={e => (e.currentTarget.style.background = "#232323")}>Batal</button>
+              onMouseLeave={e => (e.currentTarget.style.background = "#232323")}
+            >
+              Batal
+            </button>
           )}
-          <button onClick={isGuidance ? onClose : onConfirm}
-            className="inline-flex items-center justify-center rounded-full text-white text-[14px] font-semibold bg-[#E30000] hover:bg-[#CC0000] transition-colors"
-            style={{ height: "44px" }}>
-            {isGuidance ? "Lengkapi Data" : "Publikasikan"}
+          <button
+            onClick={isGuidance ? onClose : onConfirm}
+            disabled={isSubmitting}
+            className="inline-flex items-center justify-center gap-2 rounded-full text-white text-[14px] font-semibold bg-[#E30000] hover:bg-[#CC0000] transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(227,0,0,0.3)]"
+            style={{ height: "44px" }}
+          >
+            {isGuidance ? (
+              "Lengkapi Data"
+            ) : isSubmitting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                <span>Mempublikasikan...</span>
+              </>
+            ) : (
+              "Publikasikan"
+            )}
           </button>
         </div>
       </div>

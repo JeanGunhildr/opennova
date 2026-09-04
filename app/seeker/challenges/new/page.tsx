@@ -1,5 +1,5 @@
-﻿"use client";
-import { useState } from "react";
+"use client";
+import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import CreateChallengeHeader from "@/component/seeker/create-challenge/CreateChallengeHeader";
@@ -12,6 +12,8 @@ import Section6Timeline, { type TimelineData } from "@/component/seeker/create-c
 import Section7RewardPayment from "@/component/seeker/create-challenge/Section7RewardPayment";
 import DiscardDataModal from "@/component/seeker/create-challenge/modals/DiscardDataModal";
 import PublishChallengeModal from "@/component/seeker/create-challenge/modals/PublishChallengeModal";
+import { createChallengeAction } from "@/lib/actions/challenge";
+import PopupToast, { type ToastNotification } from "@/component/ui/PopupToast";
 
 import type { ListItem } from "@/component/seeker/create-challenge/Section2Description";
 import type { Criterion } from "@/component/seeker/create-challenge/Section5Evaluation";
@@ -95,6 +97,12 @@ export default function CreateChallengePage() {
     }
   }
 
+  // Submit and error states
+  const formRef = useRef<HTMLFormElement>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [toast, setToast] = useState<ToastNotification | null>(null);
+
   function handleDiscard() {
     // Reset all state
     setThumbnail(null); setTitle(""); setCategoryId(null);
@@ -105,28 +113,93 @@ export default function CreateChallengePage() {
     setPitchCriteria(INIT_PITCH_CRITERIA); setPitchWeight(40);
     setTimeline(INIT_TIMELINE);
     setRewardAmount(0); setSelectedBank(null); setPaymentStatus("pending");
+    setSubmitError(null);
     router.push("/seeker/challenges");
   }
 
-  return (
-    <div className="min-h-screen pt-14 lg:pt-0" style={{ background: "#171717" }}>
-      <div className="w-full max-w-[1120px] mx-auto px-4 sm:px-5 md:px-6 lg:px-8 xl:px-0 py-8 pb-16">
-        <CreateChallengeHeader onDiscard={() => setShowDiscard(true)} onPublish={handlePublishClick} />
+  async function handleConfirmPublish() {
+    if (!formRef.current) return;
+    setIsSubmitting(true);
+    setSubmitError(null);
 
-        {/* 2-column grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_350px] gap-[18px] items-start">
-          {/* Left column */}
-          <div className="flex flex-col gap-[18px]">
+    try {
+      const formData = new FormData(formRef.current);
+
+      // Pastikan berkas dan state penting terpasang di formData
+      if (thumbnail) formData.set("thumbnail", thumbnail);
+      if (copyrightFile) formData.set("copyright_agreement", copyrightFile);
+      if (categoryId) formData.set("category_id", categoryId);
+      if (selectedBank) formData.set("bank", selectedBank);
+      formData.set("payment_status", paymentStatus);
+
+      const result = await createChallengeAction(formData);
+
+      if (!result.success) {
+        const errorMsg = result.error || "Gagal mempublikasikan challenge.";
+        setSubmitError(errorMsg);
+        setToast({
+          type: "error",
+          title: "Gagal Publikasi",
+          message: errorMsg,
+        });
+        setPublishModal(null);
+        return;
+      }
+
+      setPublishModal(null);
+      setToast({
+        type: "success",
+        title: "Challenge Berhasil Dipublikasikan!",
+        message: "Challenge kini aktif dan dapat dilihat oleh inovator. Mengarahkan...",
+      });
+
+      setTimeout(() => {
+        router.push("/seeker/challenges");
+        router.refresh();
+      }, 1500);
+    } catch (err: unknown) {
+      console.error("Submit error:", err);
+      const connMsg = err instanceof Error ? err.message : "Terjadi kesalahan koneksi.";
+      setSubmitError(connMsg);
+      setToast({
+        type: "error",
+        title: "Kesalahan Jaringan",
+        message: connMsg,
+      });
+      setPublishModal(null);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  function handleForm(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    handlePublishClick();
+  }
+
+  return (
+    <form ref={formRef} onSubmit={handleForm} className="min-h-screen pt-14 lg:pt-0" style={{ background: "#171717" }}>
+      <div className="w-full max-w-[1120px] mx-auto px-4 sm:px-5 md:px-6 lg:px-8 xl:px-0 py-8 pb-16">
+        <CreateChallengeHeader
+          onDiscard={() => setShowDiscard(true)}
+          onPublish={handlePublishClick}
+          isSubmitting={isSubmitting}
+        />
+
+        {submitError && (
+          <div className="mx-4 mb-4 rounded-xl bg-red-900/40 border border-red-500/50 p-4 text-[13px] text-red-200">
+            <p className="font-semibold text-red-100">Gagal Mempublikasikan Challenge:</p>
+            <p className="mt-0.5">{submitError}</p>
+          </div>
+        )}
+
+        <div className="flex mx-4 gap-4 flex-col">
             <Section1BasicInfo thumbnail={thumbnail} title={title} categoryId={categoryId}
               onThumbnail={setThumbnail} onTitle={setTitle} onCategory={setCategoryId} />
             <Section2Description about={about} innovationGoals={innovationGoals}
               onAbout={setAbout} onGoals={setInnovationGoals} />
             <Section3SubmissionRules rules={submissionRules} onRules={setSubmissionRules} />
             <Section4Copyright copyrightFile={copyrightFile} onFile={setCopyrightFile} />
-          </div>
-
-          {/* Right column */}
-          <div className="flex flex-col gap-[18px]">
             <Section5Evaluation expertCriteria={expertCriteria} expertWeight={expertWeight}
               pitchCriteria={pitchCriteria} pitchWeight={pitchWeight}
               onExpertCriteria={setExpertCriteria} onExpertWeight={setExpertWeight}
@@ -135,7 +208,6 @@ export default function CreateChallengePage() {
             <Section7RewardPayment rewardAmount={rewardAmount} selectedBank={selectedBank}
               paymentStatus={paymentStatus} onReward={setRewardAmount} onBank={setSelectedBank}
               onPaymentPaid={() => setPaymentStatus("paid")} />
-          </div>
         </div>
       </div>
 
@@ -143,10 +215,17 @@ export default function CreateChallengePage() {
         <DiscardDataModal onClose={() => setShowDiscard(false)} onConfirm={handleDiscard} />
       )}
       {publishModal && (
-        <PublishChallengeModal mode={publishModal.mode} missingItems={publishModal.items}
+        <PublishChallengeModal
+          mode={publishModal.mode}
+          missingItems={publishModal.items}
+          isSubmitting={isSubmitting}
           onClose={() => setPublishModal(null)}
-          onConfirm={() => { setPublishModal(null); router.push("/seeker/challenges"); }} />
+          onConfirm={handleConfirmPublish}
+        />
       )}
-    </div>
+
+      {/* Popup Notification */}
+      <PopupToast toast={toast} onDismiss={() => setToast(null)} />
+    </form>
   );
 }
