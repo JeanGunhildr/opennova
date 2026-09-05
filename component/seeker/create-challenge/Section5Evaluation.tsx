@@ -1,7 +1,8 @@
-﻿"use client";
+"use client";
 
 import { Trash2, Plus, Info } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import AssessmentPaymentInfoModal from "./AssessmentPaymentInfoModal";
 
 const CARD_STYLE: React.CSSProperties = {
   background: "#191919",
@@ -304,6 +305,7 @@ export default function Section5Evaluation({
   onPitchCriteria,
   onPitchWeight,
 }: Section5Props) {
+  const [isAssessmentInfoModalOpen, setIsAssessmentInfoModalOpen] = useState(false);
   const totalValid = expertWeight + pitchWeight === 100;
 
   return (
@@ -334,34 +336,25 @@ export default function Section5Evaluation({
         </div>
       </div>
 
-      <div
-        className="flex gap-2 rounded-[8px] p-[10px] mb-4"
-        style={{
-          background: "#17223D",
-          border: "1px solid rgba(138,168,255,0.45)",
-        }}
-      >
-        <Info
-          size={14}
-          strokeWidth={2}
-          style={{
-            color: "#8AA8FF",
-            flexShrink: 0,
-            marginTop: "1px",
-          }}
-        />
+      {/* ── Blue Information Card: Informasi Penilaian ──────── */}
+      <div className="flex items-start gap-3 bg-[rgba(59,130,246,0.08)] border border-[#2563EB]/35 rounded-[12px] p-4 mb-5 shadow-sm">
+        <Info size={20} className="text-[#3B82F6] shrink-0 mt-0.5" />
 
-        <p
-          style={{
-            fontSize: "10px",
-            lineHeight: "1.45",
-            color: "#BDBDBD",
-          }}
-        >
-          Total bobot dua tahap penilaian harus berjumlah 100%.
-          Mengubah bobot satu tahap akan otomatis memperbarui tahap
-          lainnya.
-        </p>
+        <div className="flex flex-col gap-1.5">
+          <h4 className="text-xs font-bold text-white leading-tight">
+            Informasi Penilaian
+          </h4>
+          <p className="text-[11px] text-[#A4A4A4] leading-relaxed">
+            Penilaian dilakukan dalam dua tahap, yaitu Penjurian Ahli dan Pitching Final. Anda dapat menentukan persentase bobot penilaian pada kedua tahap tersebut untuk menentukan pemenang challenge.
+            <button
+              type="button"
+              onClick={() => setIsAssessmentInfoModalOpen(true)}
+              className="text-[#3B82F6] hover:text-[#60A5FA] font-semibold cursor-pointer ml-1 inline transition-colors underline-offset-2 hover:underline"
+            >
+              Lihat informasi lebih lanjut.
+            </button>
+          </p>
+        </div>
       </div>
 
       <div className="flex flex-col gap-5">
@@ -397,6 +390,12 @@ export default function Section5Evaluation({
           {expertWeight + pitchWeight}%.
         </p>
       )}
+
+      {/* Dedicated Payment Info Modal for Section 5 */}
+      <AssessmentPaymentInfoModal
+        isOpen={isAssessmentInfoModalOpen}
+        onClose={() => setIsAssessmentInfoModalOpen(false)}
+      />
     </div>
   );
 }
