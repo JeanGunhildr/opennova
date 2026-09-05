@@ -9,6 +9,7 @@ import {
 import ManageChallengeHeader from "./ManageChallengeHeader";
 import AssessmentSubmenu from "./AssessmentSubmenu";
 import ChallengeSettingsTab from "./ChallengeSettingsTab";
+import DiscussionTab from "./discussion/DiscussionTab";
 
 interface ManageChallengeClientProps {
   id: string;
@@ -113,10 +114,7 @@ export default function ManageChallengeClient({ id }: ManageChallengeClientProps
         )}
 
         {primaryTab === "discussion" && (
-          <div className="h-[120px] bg-[#191919] border border-[#393939] rounded-[12px] p-6 mt-6 flex flex-col items-center justify-center text-center text-[#737373] text-xs">
-            <p className="font-semibold text-white mb-1">Ruang Diskusi Solver & Seeker</p>
-            <p>Fitur diskusi interaktif sedang dipersiapkan untuk fase berikutnya.</p>
-          </div>
+          <DiscussionTab challengeTitle={challenge.title} />
         )}
 
         {primaryTab === "settings" && (
