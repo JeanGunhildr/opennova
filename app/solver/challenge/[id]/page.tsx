@@ -95,12 +95,8 @@ export default async function ChallengeDetailPage({
         title,
         start_date,
         end_date
-      ),
-
-      challenge_entries (
-        id,
-        participation_type
       )
+
     `)
     .eq("id", id)
     .maybeSingle();
@@ -194,54 +190,21 @@ export default async function ChallengeDetailPage({
 
   const timelines = dbCh.challenge_timelines || [];
 
-  // ── Calculate participant count ───────────────────────────
-  //
-  // Individual entry = 1 peserta
-  // Team entry = jumlah challenge_entry_members
-  //
-  // challenge_entry_members adalah snapshot peserta ketika
-  // tim mendaftarkan diri ke challenge.
+const {
+  data: participantCountData,
+  error: participantCountError,
+} = await supabase.rpc("get_challenge_participant_count", {
+  _challenge_id: id,
+});
 
-  let participantCount = 0;
+const participantCount = Number(participantCountData) || 0;
 
-  const challengeEntries = Array.isArray(dbCh.challenge_entries)
-    ? dbCh.challenge_entries
-    : [];
-
-  const individualEntryCount = challengeEntries.filter(
-    (entry: any) =>
-      entry.participation_type === "individual"
-  ).length;
-
-  const teamEntryIds = challengeEntries
-    .filter(
-      (entry: any) =>
-        entry.participation_type === "team"
-    )
-    .map((entry: any) => entry.id);
-
-  if (teamEntryIds.length > 0) {
-    const { data: teamParticipantSnapshots, error: countError } =
-      await supabase
-        .from("challenge_entry_members")
-        .select("id, entry_id")
-        .in("entry_id", teamEntryIds);
-
-    if (countError) {
-      console.error(
-        "Error fetching participant snapshots:",
-        countError
-      );
-    }
-
-    const teamParticipantCount =
-      teamParticipantSnapshots?.length || 0;
-
-    participantCount =
-      individualEntryCount + teamParticipantCount;
-  } else {
-    participantCount = individualEntryCount;
-  }
+if (participantCountError) {
+  console.error(
+    "Error fetching participant count:",
+    participantCountError
+  );
+}
 
   // ── Fetch User Auth & participation state ────────────────
 

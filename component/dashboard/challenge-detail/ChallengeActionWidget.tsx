@@ -606,7 +606,6 @@ export default function ChallengeActionWidget({
         )}
 
         {/* ── 4. State: ACTIVE_JOINED_TEAM_MEMBER ──────────── */}
-        {/* ── 4. State: ACTIVE_JOINED_TEAM_MEMBER ──────────── */}
         {state === "ACTIVE_JOINED_TEAM_MEMBER" && (
           <div>
             <div className="flex items-center gap-2 mb-2">
