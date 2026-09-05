@@ -3,6 +3,7 @@
 
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getDiscussionsAction } from "@/lib/actions/discussion";
 import ChallengeDetailClient from "@/component/dashboard/challenge-detail/ChallengeDetailClient";
 import type { HeroStatus } from "@/component/dashboard/challenge-detail/ChallengeHero";
 import type { ChallengeActionState, CaptainTeamOption } from "@/component/dashboard/challenge-detail/ChallengeActionWidget";
@@ -241,6 +242,8 @@ export default async function ChallengeDetailPage({
     console.error("Error fetching user participation state:", err);
   }
 
+  const discussions = await getDiscussionsAction(id);
+
   return (
     <ChallengeDetailClient
       id={id}
@@ -262,6 +265,7 @@ export default async function ChallengeDetailPage({
       requirements={requirements}
       criteria={criteria}
       timelines={timelines}
+      discussions={discussions}
       expertWeight={Number(dbCh.expert_weight) || 50}
       pitchWeight={Number(dbCh.pitch_weight) || 50}
       verified={Boolean(seekerObj?.legal_document_path)}

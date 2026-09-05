@@ -234,7 +234,25 @@ export async function createChallengeAction(
       const { error: critError } = await supabase
         .from("judging_criteria")
         .insert(criteriaToInsert);
-      if (critError) console.error("Gagal simpan criteria:", critError);
+
+      if (critError) {
+        console.error("Gagal simpan criteria (percobaan 1):", critError);
+        // Fallback: sertakan juga field 'title' jika tabel DB mengharuskan nama kolom 'title'
+        const fallbackCriteria = criteriaToInsert.map((c) => ({
+          challenge_id: c.challenge_id,
+          stage: c.stage,
+          name: c.name,
+          title: c.name,
+          description: c.description,
+        }));
+        const { error: retryError } = await supabase
+          .from("judging_criteria")
+          .insert(fallbackCriteria as any);
+
+        if (retryError) {
+          console.error("Gagal simpan criteria (percobaan 2):", retryError);
+        }
+      }
     }
 
     // 9. Simpan Linimasa Challenge (challenge_timelines)

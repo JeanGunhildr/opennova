@@ -14,6 +14,7 @@ import ChallengeActionWidget, {
   type CaptainTeamOption
 } from "./ChallengeActionWidget";
 import type { ObjectiveItem, RequirementItem, CriterionItem, TimelineItem } from "./ChallengeContentArea";
+import type { DiscussionComment } from "@/lib/actions/discussion";
 
 export interface ChallengeDetailClientProps {
   id: string;
@@ -35,6 +36,7 @@ export interface ChallengeDetailClientProps {
   requirements?: RequirementItem[];
   criteria?: CriterionItem[];
   timelines?: TimelineItem[];
+  discussions?: DiscussionComment[];
   expertWeight?: number;
   pitchWeight?: number;
   verified?: boolean;
@@ -69,6 +71,7 @@ export default function ChallengeDetailClient({
   requirements = [],
   criteria = [],
   timelines = [],
+  discussions = [],
   expertWeight = 50,
   pitchWeight = 50,
   verified = false,
@@ -81,6 +84,7 @@ export default function ChallengeDetailClient({
   existingSubmissionUrl = "",
 }: ChallengeDetailClientProps) {
   const [activeTab, setActiveTab] = useState<string>("Deskripsi");
+  const [discussionCount, setDiscussionCount] = useState<number>(discussions.length);
 
   return (
     <div className="px-4 sm:px-6 lg:px-10 py-8 lg:py-9">
@@ -126,18 +130,24 @@ export default function ChallengeDetailClient({
           />
 
           {/* Tabs */}
-          <ChallengeTabs onTabChange={(tab) => setActiveTab(tab)} />
+          <ChallengeTabs
+            discussionCount={discussionCount}
+            onTabChange={(tab) => setActiveTab(tab)}
+          />
 
           {/* Content Area filtered by activeTab */}
           <ChallengeContentArea
+            challengeId={id}
             description={description}
             activeTab={activeTab}
             objectives={objectives}
             requirements={requirements}
             criteria={criteria}
             timelines={timelines}
+            discussions={discussions}
             expertWeight={expertWeight}
             pitchWeight={pitchWeight}
+            onDiscussionCountChange={setDiscussionCount}
           />
         </div>
 

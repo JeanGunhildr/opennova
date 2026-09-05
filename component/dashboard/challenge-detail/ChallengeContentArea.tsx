@@ -1,7 +1,9 @@
 "use client";
 
-import { FileText, Target, FileCheck, BarChart3, Calendar, CheckCircle2, MessageSquare, Send } from "lucide-react";
-import { useState } from "react";
+import { FileText, Target, FileCheck, BarChart3, Calendar, CheckCircle2, MessageSquare, Send, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { addDiscussionCommentAction, type DiscussionComment } from "@/lib/actions/discussion";
+import { formatTimestamp } from "@/lib/utils/formatDate";
 
 export interface ObjectiveItem {
   id?: string;
@@ -29,14 +31,17 @@ export interface TimelineItem {
 }
 
 export interface ChallengeContentAreaProps {
+  challengeId?: string;
   description: string;
   activeTab?: string;
   objectives?: ObjectiveItem[];
   requirements?: RequirementItem[];
   criteria?: CriterionItem[];
   timelines?: TimelineItem[];
+  discussions?: DiscussionComment[];
   expertWeight?: number;
   pitchWeight?: number;
+  onDiscussionCountChange?: (count: number) => void;
 }
 
 /**
@@ -58,11 +63,8 @@ function getTimelineStageDescription(title: string, customDesc?: string | null):
   if (t.includes("pitching") || t.includes("presentasi") || t.includes("final")) {
     return "Beberapa Solver terpilih mempresentasikan solusinya langsung di hadapan Seeker.";
   }
-  if (t.includes("pengumuman") || t.includes("pemenang") || t.includes("hadiah")) {
-    return "Hasil akhir diumumkan dan hadiah dicairkan ke pemenang challenge.";
-  }
 
-  return "Tahap pelaksanaan kegiatan sesuai dengan jadwal yang telah ditentukan oleh Seeker.";
+  return "Tahap pelaksanaan tantangan inovasi.";
 }
 
 function SectionHeading({ icon: Icon, title }: { icon: typeof FileText; title: string }) {
@@ -111,47 +113,102 @@ function formatTimelineDate(dateStr: string | null | undefined): string {
 }
 
 export default function ChallengeContentArea({
+  challengeId,
   description,
   activeTab = "Deskripsi",
   objectives = [],
   requirements = [],
   criteria = [],
   timelines = [],
+  discussions = [],
   expertWeight = 50,
   pitchWeight = 50,
+  onDiscussionCountChange,
 }: ChallengeContentAreaProps) {
   const [discussionInput, setDiscussionInput] = useState("");
-  const [comments, setComments] = useState([
-    {
-      id: "c1",
-      author: "Rizky Pratama",
-      role: "Solver",
-      time: "2 hari yang lalu",
-      text: "Apakah pengumpulan berkas proposal wajib menyertakan arsitektur sistem lengkap?",
-    },
-    {
-      id: "c2",
-      author: "Tim Seeker",
-      role: "Seeker",
-      time: "1 hari yang lalu",
-      text: "Halo Rizky! Ya, arsitektur sistem cukup dicantumkan pada bagian lampiran proposal PDF.",
-    },
-  ]);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [comments, setComments] = useState<DiscussionComment[]>(discussions);
 
-  const handleAddComment = (e: React.FormEvent) => {
+  const storageKey = challengeId ? `opennova_discussions_${challengeId}` : null;
+
+  useEffect(() => {
+    if (discussions && discussions.length > 0) {
+      setComments(discussions);
+      if (storageKey) {
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(discussions));
+        } catch (e) {}
+      }
+      onDiscussionCountChange?.(discussions.length);
+    } else if (storageKey) {
+      try {
+        const cached = localStorage.getItem(storageKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setComments(parsed);
+            onDiscussionCountChange?.(parsed.length);
+          }
+        }
+      } catch (e) {}
+    }
+  }, [discussions, storageKey, onDiscussionCountChange]);
+
+  const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!discussionInput.trim()) return;
-    setComments((prev) => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        author: "Saya",
-        role: "Solver",
-        time: "Baru saja",
-        text: discussionInput.trim(),
-      },
-    ]);
-    setDiscussionInput("");
+    const text = discussionInput.trim();
+    if (!text || isSubmittingComment) return;
+
+    const fallbackComment: DiscussionComment = {
+      id: Date.now().toString(),
+      author: "Saya",
+      role: "Solver",
+      time: formatTimestamp(),
+      text,
+    };
+
+    if (challengeId) {
+      setIsSubmittingComment(true);
+      try {
+        const res = await addDiscussionCommentAction(challengeId, text);
+        const commentToAdd = (res.success && res.comment) ? res.comment : fallbackComment;
+        
+        setComments((prev) => {
+          const updated = [...prev, commentToAdd];
+          if (storageKey) {
+            try {
+              localStorage.setItem(storageKey, JSON.stringify(updated));
+            } catch (e) {}
+          }
+          onDiscussionCountChange?.(updated.length);
+          return updated;
+        });
+
+        setDiscussionInput("");
+      } catch (err) {
+        console.error("Error submitting comment:", err);
+        setComments((prev) => {
+          const updated = [...prev, fallbackComment];
+          if (storageKey) {
+            try {
+              localStorage.setItem(storageKey, JSON.stringify(updated));
+            } catch (e) {}
+          }
+          onDiscussionCountChange?.(updated.length);
+          return updated;
+        });
+        setDiscussionInput("");
+      } finally {
+        setIsSubmittingComment(false);
+      }
+    } else {
+      setComments((prev) => {
+        const updated = [...prev, fallbackComment];
+        onDiscussionCountChange?.(updated.length);
+        return updated;
+      });
+      setDiscussionInput("");
+    }
   };
 
   // Determine section visibility
@@ -321,7 +378,7 @@ export default function ChallengeContentArea({
                     {/* Timeline dot */}
                     <div className="absolute w-[12px] h-[12px] rounded-full border-2 border-primary-500 bg-white left-[-24px] top-[3px]" />
 
-                    <p className="text-[11px] font-bold text-primary-500 tracking-wide uppercase mb-0.5">
+                    <p className="text-[11px] font-bold text-primary-500 tracking-wide mb-0.5">
                       {dateRange}
                     </p>
                     <p className="text-[14.5px] font-bold text-gray-900 leading-tight">{item.title}</p>
@@ -349,34 +406,46 @@ export default function ChallengeContentArea({
               type="text"
               value={discussionInput}
               onChange={(e) => setDiscussionInput(e.target.value)}
+              disabled={isSubmittingComment}
               placeholder="Tanyakan sesuatu tentang challenge ini..."
-              className="flex-1 h-[42px] px-4 rounded-full border border-gray-300 bg-gray-50 text-[13.5px] text-gray-900 outline-none focus:border-primary-500 focus:bg-white transition-all"
+              className="flex-1 h-[42px] px-4 rounded-full border border-gray-300 bg-gray-50 text-[13.5px] text-gray-900 outline-none focus:border-primary-500 focus:bg-white transition-all disabled:opacity-50"
             />
             <button
               type="submit"
-              className="h-[42px] px-5 bg-primary-500 hover:bg-primary-600 text-white rounded-full text-[13px] font-semibold flex items-center gap-2 transition-colors"
+              disabled={isSubmittingComment || !discussionInput.trim()}
+              className="h-[42px] px-5 bg-primary-500 hover:bg-primary-600 disabled:bg-gray-300 text-white rounded-full text-[13px] font-semibold flex items-center gap-2 transition-colors cursor-pointer disabled:cursor-not-allowed"
             >
-              <Send size={14} />
+              {isSubmittingComment ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Send size={14} />
+              )}
               Kirim
             </button>
           </form>
 
           {/* Comment List */}
           <div className="flex flex-col gap-3">
-            {comments.map((c) => (
-              <div key={c.id} className="p-3.5 bg-gray-50 border border-gray-100 rounded-[12px]">
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[13.5px] font-bold text-gray-900">{c.author}</span>
-                    <span className="text-[10.5px] font-medium px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full">
-                      {c.role}
-                    </span>
+            {comments.length > 0 ? (
+              comments.map((c) => (
+                <div key={c.id} className="p-3.5 bg-gray-50 border border-gray-100 rounded-[12px]">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[13.5px] font-bold text-gray-900">{c.author}</span>
+                      <span className="text-[10.5px] font-medium px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full">
+                        {c.role}
+                      </span>
+                    </div>
+                    <span className="text-[11.5px] text-gray-400">{c.time}</span>
                   </div>
-                  <span className="text-[11.5px] text-gray-400">{c.time}</span>
+                  <p className="text-[13px] text-gray-700 mt-1">{c.text}</p>
                 </div>
-                <p className="text-[13px] text-gray-700 mt-1">{c.text}</p>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-[13px] text-gray-500 italic text-center py-4">
+                Belum ada diskusi untuk challenge ini. Jadilah yang pertama bertanya!
+              </p>
+            )}
           </div>
         </section>
       )}
