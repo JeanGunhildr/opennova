@@ -161,20 +161,6 @@ export default function ChallengeContentArea({
   const showLinimasa = showAll || activeTab === "Linimasa";
   const showDiskusi = activeTab.toLowerCase().includes("diskusi");
 
-  // Fallbacks if arrays are empty
-  const defaultObjectives = objectives.length > 0 ? objectives : [
-    { content: "Pemantauan suhu real-time pada unit penyimpanan vaksin di puskesmas dan posyandu wilayah 3T." },
-    { content: "Notifikasi dini saat suhu keluar dari ambang aman, dikirim ke tenaga kesehatan setempat maupun dinas kesehatan." },
-    { content: "Biaya implementasi rendah dan dapat diproduksi/dirawat menggunakan komponen yang mudah didapat di Indonesia." },
-  ];
-
-  const defaultRequirements = requirements.length > 0 ? requirements : [
-    { content: "Dokumen proposal teknis dalam format PDF, maksimal 15 halaman." },
-    { content: "Prototipe, mockup, atau simulasi dapat dilampirkan dalam format ZIP (opsional)." },
-    { content: "Ukuran total berkas maksimal 25MB per pengajuan." },
-    { content: "Solusi wajib merupakan karya orisinal dan belum pernah dipublikasikan atau diikutsertakan pada challenge lain." },
-  ];
-
   const expertCriteria = criteria.filter(
     (c) =>
       c.stage?.toLowerCase() === "expert" ||
@@ -189,25 +175,6 @@ export default function ChallengeContentArea({
       c.stage?.toLowerCase().includes("final")
   );
 
-  const defaultExpertCriteria = expertCriteria.length > 0 ? expertCriteria : [
-    { name: "Kelayakan Teknis", description: "Kematangan teknis dan kemungkinan solusi untuk diimplementasikan." },
-    { name: "Inovasi & Orisinalitas", description: "Keunikan pendekatan dan kebaruan dari solusi yang diajukan." },
-    { name: "Dampak & Skalabilitas", description: "Potensi manfaat bagi wilayah 3T dan potensi diperluas ke daerah lain." },
-  ];
-
-  const defaultPitchCriteria = pitchCriteria.length > 0 ? pitchCriteria : [
-    { name: "Biaya & Sumber Daya", description: "Kematangan teknis dan kemungkinan solusi untuk diimplementasikan." },
-    { name: "Kesiapan Implementasi", description: "Keunikan pendekatan dan kebaruan dari solusi yang diajukan." },
-    { name: "Kejelasan Model", description: "Potensi manfaat bagi wilayah 3T dan potensi diperluas ke daerah lain." },
-  ];
-
-  const defaultTimelines: TimelineItem[] = timelines.length > 0 ? timelines : [
-    { title: "Challenge Dibuka", start_date: "2026-08-01", end_date: "2026-09-05" },
-    { title: "Penjurian Ahli", start_date: "2026-09-06", end_date: "2026-10-12" },
-    { title: "Pitching Final", start_date: "2026-10-13", end_date: "2026-10-31" },
-    { title: "Pengumuman Pemenang", start_date: "2026-11-01", end_date: "2026-11-20" },
-  ];
-
   return (
     <div className="flex flex-col gap-4 mt-1">
       {/* ── Deskripsi / Tentang Challenge ──────────────────────── */}
@@ -215,9 +182,13 @@ export default function ChallengeContentArea({
         <section className="bg-white border border-gray-200 rounded-[16px] p-5 shadow-2xs">
           <SectionHeading icon={FileText} title="Tentang Challenge" />
           <div className="flex flex-col gap-2.5 text-gray-600 leading-[1.65] text-[13.5px]">
-            {description.split("\n\n").map((para, i) => (
-              <p key={i}>{para}</p>
-            ))}
+            {description ? (
+              description.split("\n\n").map((para, i) => (
+                <p key={i}>{para}</p>
+              ))
+            ) : (
+              <p className="text-[13px] text-gray-500 italic">Belum ada deskripsi untuk challenge ini.</p>
+            )}
           </div>
 
           {/* Tujuan Inovasi */}
@@ -230,12 +201,16 @@ export default function ChallengeContentArea({
             </div>
 
             <div className="flex flex-col gap-2 mt-2">
-              {defaultObjectives.map((obj, i) => (
-                <div key={i} className="flex items-start gap-2.5">
-                  <CheckCircle2 size={15} className="text-primary-500 flex-shrink-0 mt-0.5" strokeWidth={2.2} />
-                  <span className="text-[13.5px] text-gray-700 leading-[1.55]">{obj.content}</span>
-                </div>
-              ))}
+              {objectives.length > 0 ? (
+                objectives.map((obj, i) => (
+                  <div key={i} className="flex items-start gap-2.5">
+                    <CheckCircle2 size={15} className="text-primary-500 flex-shrink-0 mt-0.5" strokeWidth={2.2} />
+                    <span className="text-[13.5px] text-gray-700 leading-[1.55]">{obj.content}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-[13px] text-gray-500 italic">Belum ada tujuan inovasi yang ditentukan.</p>
+              )}
             </div>
           </div>
         </section>
@@ -245,11 +220,15 @@ export default function ChallengeContentArea({
       {showKetentuan && !showDiskusi && (
         <section className="bg-white border border-gray-200 rounded-[16px] p-5 shadow-2xs">
           <SectionHeading icon={FileCheck} title="Ketentuan Pengumpulan" />
-          <ul className="flex flex-col gap-2 list-disc pl-5 text-[13.5px] text-gray-700 leading-[1.55]">
-            {defaultRequirements.map((req, i) => (
-              <li key={i}>{req.content}</li>
-            ))}
-          </ul>
+          {requirements.length > 0 ? (
+            <ul className="flex flex-col gap-2 list-disc pl-5 text-[13.5px] text-gray-700 leading-[1.55]">
+              {requirements.map((req, i) => (
+                <li key={i}>{req.content}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-[13px] text-gray-500 italic mt-2">Belum ada ketentuan pengumpulan yang ditentukan.</p>
+          )}
         </section>
       )}
 
@@ -269,17 +248,21 @@ export default function ChallengeContentArea({
                 </span>
               </div>
               <div className="flex flex-col gap-2.5">
-                {defaultExpertCriteria.map((item, i) => (
-                  <div key={i} className="flex flex-col gap-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary-500 flex-shrink-0" />
-                      <span className="text-[13.5px] font-bold text-gray-900">{item.name}</span>
+                {expertCriteria.length > 0 ? (
+                  expertCriteria.map((item, i) => (
+                    <div key={i} className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary-500 flex-shrink-0" />
+                        <span className="text-[13.5px] font-bold text-gray-900">{item.name}</span>
+                      </div>
+                      {item.description && (
+                        <p className="text-[11.5px] text-gray-500 pl-3.5 leading-[1.35]">{item.description}</p>
+                      )}
                     </div>
-                    {item.description && (
-                      <p className="text-[11.5px] text-gray-500 pl-3.5 leading-[1.35]">{item.description}</p>
-                    )}
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-[12px] text-gray-500 italic py-1">Belum ada kriteria penjurian ahli.</p>
+                )}
               </div>
             </div>
 
@@ -294,17 +277,21 @@ export default function ChallengeContentArea({
                 </span>
               </div>
               <div className="flex flex-col gap-2.5">
-                {defaultPitchCriteria.map((item, i) => (
-                  <div key={i} className="flex flex-col gap-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary-500 flex-shrink-0" />
-                      <span className="text-[13.5px] font-bold text-gray-900">{item.name}</span>
+                {pitchCriteria.length > 0 ? (
+                  pitchCriteria.map((item, i) => (
+                    <div key={i} className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary-500 flex-shrink-0" />
+                        <span className="text-[13.5px] font-bold text-gray-900">{item.name}</span>
+                      </div>
+                      {item.description && (
+                        <p className="text-[11.5px] text-gray-500 pl-3.5 leading-[1.35]">{item.description}</p>
+                      )}
                     </div>
-                    {item.description && (
-                      <p className="text-[11.5px] text-gray-500 pl-3.5 leading-[1.35]">{item.description}</p>
-                    )}
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-[12px] text-gray-500 italic py-1">Belum ada kriteria pitching final.</p>
+                )}
               </div>
             </div>
           </div>
@@ -315,35 +302,39 @@ export default function ChallengeContentArea({
       {showLinimasa && !showDiskusi && (
         <section className="bg-white border border-gray-200 rounded-[16px] p-5 shadow-2xs">
           <SectionHeading icon={Calendar} title="Linimasa Challenge" />
-          <div className="relative pl-[24px] mt-4">
-            {/* Vertical timeline line */}
-            <div className="absolute left-[6px] top-[6px] bottom-[6px] w-[2px] bg-red-200" />
+          {timelines.length > 0 ? (
+            <div className="relative pl-[24px] mt-4">
+              {/* Vertical timeline line */}
+              <div className="absolute left-[6px] top-[6px] bottom-[6px] w-[2px] bg-red-200" />
 
-            {defaultTimelines.map((item, idx) => {
-              const formattedStart = formatTimelineDate(item.start_date);
-              const formattedEnd = formatTimelineDate(item.end_date);
-              const dateRange = formattedEnd
-                ? `${formattedStart || ""} - ${formattedEnd}`
-                : formattedStart || "Selesai";
+              {timelines.map((item, idx) => {
+                const formattedStart = formatTimelineDate(item.start_date);
+                const formattedEnd = formatTimelineDate(item.end_date);
+                const dateRange = formattedEnd
+                  ? `${formattedStart || ""} - ${formattedEnd}`
+                  : formattedStart || "Selesai";
 
-              const stageDescription = getTimelineStageDescription(item.title, item.description);
+                const stageDescription = getTimelineStageDescription(item.title, item.description);
 
-              return (
-                <div key={idx} className="relative pb-5 last:pb-0">
-                  {/* Timeline dot */}
-                  <div className="absolute w-[12px] h-[12px] rounded-full border-2 border-primary-500 bg-white left-[-24px] top-[3px]" />
+                return (
+                  <div key={idx} className="relative pb-5 last:pb-0">
+                    {/* Timeline dot */}
+                    <div className="absolute w-[12px] h-[12px] rounded-full border-2 border-primary-500 bg-white left-[-24px] top-[3px]" />
 
-                  <p className="text-[11px] font-bold text-primary-500 tracking-wide uppercase mb-0.5">
-                    {dateRange}
-                  </p>
-                  <p className="text-[14.5px] font-bold text-gray-900 leading-tight">{item.title}</p>
-                  <p className="text-[12px] text-gray-600 mt-1 leading-[1.45]">
-                    {stageDescription}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
+                    <p className="text-[11px] font-bold text-primary-500 tracking-wide uppercase mb-0.5">
+                      {dateRange}
+                    </p>
+                    <p className="text-[14.5px] font-bold text-gray-900 leading-tight">{item.title}</p>
+                    <p className="text-[12px] text-gray-600 mt-1 leading-[1.45]">
+                      {stageDescription}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-[13px] text-gray-500 italic mt-2">Belum ada linimasa yang ditentukan.</p>
+          )}
         </section>
       )}
 
