@@ -499,19 +499,74 @@ return {
 // ============================================================
 
 /**
+ * Counts active challenge slots consumed by a solver user.
+ * An entry consumes a slot if:
+ * challenge.status != 'completed' AND entry.status != 'eliminated'
+ */
+export async function countSolverActiveSlots(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+): Promise<number> {
+  const { data: memberEntries } = await supabase
+    .from("challenge_entry_members")
+    .select(`
+      entry_id,
+      challenge_entries!inner (
+        id,
+        status,
+        solver_id,
+        challenges!inner (
+          id,
+          status
+        )
+      )
+    `)
+    .eq("user_id", userId);
 
-* Solver mendaftar challenge secara individual atau tim.
-*
-* LOGIC TEAM:
-* 1. Hanya captain yang mendaftarkan tim.
-* 2. Semua anggota saat ini diambil dari team_members.
-* 3. Semua anggota di-snapshot ke challenge_entry_members.
-* 4. Team dikunci.
-*
-* Setelah snapshot dibuat, perubahan team_members tidak akan
-* mengubah history challenge.
-  */
-  export async function joinChallengeAction(
+  const { data: directEntries } = await supabase
+    .from("challenge_entries")
+    .select(`
+      id,
+      status,
+      challenges!inner (
+        id,
+        status
+      )
+    `)
+    .eq("solver_id", userId);
+
+  const activeEntryIds = new Set<string>();
+
+  (memberEntries ?? []).forEach((row: any) => {
+    const entry = Array.isArray(row.challenge_entries)
+      ? row.challenge_entries[0]
+      : row.challenge_entries;
+    if (entry) {
+      const ch = Array.isArray(entry.challenges)
+        ? entry.challenges[0]
+        : entry.challenges;
+      if (entry.status !== "eliminated" && ch?.status !== "completed") {
+        activeEntryIds.add(entry.id);
+      }
+    }
+  });
+
+  (directEntries ?? []).forEach((entry: any) => {
+    const ch = Array.isArray(entry.challenges)
+      ? entry.challenges[0]
+      : entry.challenges;
+    if (entry.status !== "eliminated" && ch?.status !== "completed") {
+      activeEntryIds.add(entry.id);
+    }
+  });
+
+  return activeEntryIds.size;
+}
+
+/**
+ * Solver mendaftar challenge secara individual atau tim.
+ */
+export async function joinChallengeAction(
   challengeId: string,
   participationType: "individual" | "team",
   teamId?: string
@@ -578,6 +633,19 @@ return {
     return {
       success: false,
       error: "Challenge ini sudah tidak dapat diikuti.",
+    };
+  }
+
+  // =========================================================
+  // 3.5. VALIDASI MAKSIMAL 3 SLOT AKTIF SOLVER
+  // =========================================================
+
+  const userActiveSlots = await countSolverActiveSlots(supabase, user.id);
+  if (userActiveSlots >= 3) {
+    return {
+      success: false,
+      error:
+        "Slot challenge penuh. Anda sedang mengikuti 3 challenge aktif. Selesaikan salah satu challenge terlebih dahulu sebelum mengikuti challenge baru.",
     };
   }
 
@@ -763,6 +831,18 @@ return {
     memberIds.add(team.captain_id);
 
     const userIds = Array.from(memberIds);
+
+    // Cek apakah ada anggota tim yang sudah mencapai 3 slot aktif
+    for (const uId of userIds) {
+      const memActiveSlots = await countSolverActiveSlots(supabase, uId);
+      if (memActiveSlots >= 3) {
+        return {
+          success: false,
+          error:
+            "Tim tidak dapat didaftarkan karena salah satu anggota tim sudah mencapai batas maksimal 3 challenge aktif.",
+        };
+      }
+    }
 
     // -------------------------------------------------------
     // 6. CEK APAKAH ADA ANGGOTA YANG SUDAH TERDAFTAR

@@ -1,183 +1,292 @@
-﻿"use client";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/supabase/user";
+import { getCurrentProfile } from "@/lib/supabase/profile";
+import { createClient } from "@/lib/supabase/server";
+import WorkspaceClient from "@/component/dashboard/WorkspaceClient";
+import type { WorkspaceChallengeItem } from "@/component/dashboard/WorkspaceChallengeCard";
 
-import { useState } from "react";
-import Link from "next/link";
-import { Plus, Briefcase, CheckCircle2, Award, BellRing } from "lucide-react";
-import { workspaceChallenges } from "@/lib/data/dashboard";
-import WorkspaceChallengeCard from "@/component/dashboard/WorkspaceChallengeCard";
+export const dynamic = "force-dynamic";
 
-type TabId = "in-progress" | "completed";
+export default async function WorkspacePage() {
+  const user = await getCurrentUser();
 
-// ── Status summary cards ───────────────────────────────────
-function WorkspaceStatusCard({
-  iconBg,
-  iconColor,
-  IconComponent,
-  value,
-  label,
-}: {
-  iconBg: string;
-  iconColor: string;
-  IconComponent: React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
-  value: string;
-  label: string;
-}) {
-  return (
-    <div className="bg-white border border-[#E5E7E9] rounded-[16px] px-4 h-[80px] flex items-center gap-3.5 shadow-[0_1px_4px_rgba(0,0,0,0.035)]">
-      <div
-        className={`flex-shrink-0 w-[50px] h-[50px] rounded-full flex items-center justify-center ${iconBg}`}
-      >
-        <IconComponent size={22} className={iconColor} strokeWidth={1.8} />
-      </div>
-      <div className="min-w-0">
-        <p className="text-[24px] lg:text-[26px] font-bold text-gray-900 leading-[1.1] tracking-tight">{value}</p>
-        <p className="text-[15px] text-gray-600 mt-1 leading-[1.35]">{label}</p>
-      </div>
-    </div>
-  );
-}
+  if (!user) {
+    redirect("/");
+  }
 
-// ── Empty state ────────────────────────────────────────────
-function WorkspaceEmptyState() {
-  return (
-    <div className="bg-white border border-[#E5E7E9] rounded-[16px] flex flex-col items-center justify-center py-16 px-8 text-center shadow-[0_1px_4px_rgba(0,0,0,0.035)]">
-      <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-        <BellRing size={24} className="text-gray-400" strokeWidth={1.5} />
-      </div>
-      <p className="text-[17px] font-semibold text-gray-900 mb-1.5">Tidak ada challenge</p>
-      <p className="text-[14px] text-gray-500 leading-[1.5] max-w-[320px] mb-6">
-        Belum ada challenge yang berada di tahap ini. Temukan peluang baru dan mulai berpartisipasi.
-      </p>
-      <Link
-        href="/solver"
-        className="inline-flex items-center gap-2.5 h-[46px] px-5 bg-primary-500 hover:bg-primary-600 text-white text-[14px] font-semibold rounded-full transition-colors shadow-[0_5px_14px_rgba(0,0,0,0.14)]"
-      >
-        <Plus size={17} strokeWidth={2.2} />
-        Cari Challenge Baru
-      </Link>
-    </div>
-  );
-}
+  const profile = await getCurrentProfile();
 
-// ── Page ───────────────────────────────────────────────────
-export default function WorkspacePage() {
-  const [activeTab, setActiveTab] = useState<TabId>("in-progress");
+  if (profile?.role === "seeker") {
+    redirect("/seeker");
+  }
 
-  const inProgressCount = workspaceChallenges.filter(c => !c.completed).length;
-  const completedCount = workspaceChallenges.filter(c => c.completed).length;
+  const supabase = await createClient();
 
-  const TABS: { id: TabId; label: string; count: number }[] = [
-    { id: "in-progress", label: "Sedang Berlangsung", count: inProgressCount },
-    { id: "completed",   label: "Selesai",            count: completedCount },
+  // ── 1. Query entries joined via challenge_entry_members ──────
+  const { data: memberRows, error: memberErr } = await supabase
+    .from("challenge_entry_members")
+    .select(`
+      entry_id,
+      user_id,
+      role_snapshot,
+      joined_at,
+      challenge_entries!inner (
+        id,
+        challenge_id,
+        participation_type,
+        solver_id,
+        team_id,
+        team_name_snapshot,
+        status,
+        is_winner,
+        joined_at,
+        challenges!inner (
+          id,
+          seeker_id,
+          category_id,
+          name,
+          description,
+          thumbnail_path,
+          prize_pool,
+          deadline,
+          status,
+          created_at,
+          expert_weight,
+          pitch_weight,
+          categories (
+            id,
+            name
+          ),
+          seeker_profiles (
+            company_name,
+            company_type,
+            legal_document_path
+          )
+        ),
+        submissions (
+          id,
+          drive_url,
+          submitted_at
+        )
+      )
+    `)
+    .eq("user_id", user.id);
+
+  if (memberErr) {
+    console.error("Error fetching member workspace entries:", memberErr);
+  }
+
+  // ── 2. Query direct challenge_entries by solver_id ────────────
+  const { data: directRows, error: directErr } = await supabase
+    .from("challenge_entries")
+    .select(`
+      id,
+      challenge_id,
+      participation_type,
+      solver_id,
+      team_id,
+      team_name_snapshot,
+      status,
+      is_winner,
+      joined_at,
+      challenges!inner (
+        id,
+        seeker_id,
+        category_id,
+        name,
+        description,
+        thumbnail_path,
+        prize_pool,
+        deadline,
+        status,
+        created_at,
+        expert_weight,
+        pitch_weight,
+        categories (
+          id,
+          name
+        ),
+        seeker_profiles (
+          company_name,
+          company_type,
+          legal_document_path
+        )
+      ),
+      submissions (
+        id,
+        drive_url,
+        submitted_at
+      )
+    `)
+    .eq("solver_id", user.id);
+
+  if (directErr) {
+    console.error("Error fetching direct workspace entries:", directErr);
+  }
+
+  // ── 3. Combine and deduplicate entries ────────────────────────
+  const itemsMap = new Map<string, WorkspaceChallengeItem>();
+
+  const GRADIENTS = [
+    { bgFrom: "#1a2035", bgVia: "#1e3358", bgTo: "#0d1524" },
+    { bgFrom: "#0d2818", bgVia: "#184d30", bgTo: "#0a1f12" },
+    { bgFrom: "#1c1008", bgVia: "#2d1a06", bgTo: "#3d2206" },
+    { bgFrom: "#0a1a2e", bgVia: "#0d2540", bgTo: "#071624" },
+    { bgFrom: "#1a1a0a", bgVia: "#2e2e12", bgTo: "#1a1a08" },
+    { bgFrom: "#0f1a10", bgVia: "#1a2e1c", bgTo: "#0c150d" },
   ];
 
-  const filtered = workspaceChallenges.filter(c => 
-    activeTab === "in-progress" ? !c.completed : c.completed
-  );
+  const processEntryRow = (entry: any) => {
+    if (!entry) return;
+    const entryId = entry.id;
+    if (itemsMap.has(entryId)) return;
 
-  const totalPotentialReward = workspaceChallenges.reduce((sum, c) => {
-    const num = parseInt(c.reward.replace(/\D/g, ""), 10);
-    return sum + (isNaN(num) ? 0 : num);
-  }, 0);
-  
-  const potentialLabel =
-    totalPotentialReward >= 1_000_000_000
-      ? `Rp ${(totalPotentialReward / 1_000_000_000).toFixed(0)}M`
-      : `Rp ${Math.round(totalPotentialReward / 1_000_000)}jt`;
+    const ch = Array.isArray(entry.challenges) ? entry.challenges[0] : entry.challenges;
+    if (!ch || !ch.id) return;
+
+    const categoryName = Array.isArray(ch?.categories)
+      ? ch.categories[0]?.name
+      : ch?.categories?.name || "Umum";
+
+    const seekerObj = Array.isArray(ch?.seeker_profiles)
+      ? ch.seeker_profiles[0]
+      : ch?.seeker_profiles;
+
+    const companyName = seekerObj?.company_name || "Perusahaan Seeker";
+    const initials =
+      companyName
+        .split(" ")
+        .map((w: string) => w[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase() || "PR";
+
+    const verified = Boolean(seekerObj?.legal_document_path);
+
+    const prizePool = Number(ch?.prize_pool) || 0;
+    const reward = `Rp ${prizePool.toLocaleString("id-ID")}`;
+
+    const rawDeadline = ch.deadline;
+    let formattedDeadline = "Belum ditentukan";
+    let isOverdue = false;
+
+    if (rawDeadline) {
+      const deadlineDate = new Date(rawDeadline);
+      const now = new Date();
+      const diffMs = deadlineDate.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+      if (diffMs < 0) {
+        formattedDeadline = "Submission ditutup";
+        isOverdue = true;
+      } else if (diffDays === 0) {
+        formattedDeadline = "Berakhir hari ini";
+        isOverdue = true;
+      } else if (diffDays === 1) {
+        formattedDeadline = "1 hari lagi";
+        isOverdue = true;
+      } else if (diffDays <= 7) {
+        formattedDeadline = `${diffDays} hari lagi`;
+        isOverdue = true;
+      } else if (diffDays <= 30) {
+        formattedDeadline = `${diffDays} hari lagi`;
+        isOverdue = false;
+      } else {
+        formattedDeadline = deadlineDate.toLocaleDateString("id-ID", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+        isOverdue = false;
+      }
+    }
+
+    const submissions = Array.isArray(entry.submissions) ? entry.submissions : [];
+    const hasSubmission = submissions.length > 0;
+    const submissionDriveUrl = submissions[0]?.drive_url || "";
+
+    const challengeStatus = (ch?.status || "ongoing").toLowerCase() as any;
+    const entryStatus = (entry.status || "registered").toLowerCase() as any;
+
+    // ACTIVE SLOT DEFINITION:
+    // challenge.status != 'completed' AND entry.status != 'eliminated'
+    const isActiveSlot = challengeStatus !== "completed" && entryStatus !== "eliminated";
+
+    const gradient = GRADIENTS[itemsMap.size % GRADIENTS.length];
+
+    itemsMap.set(entryId, {
+      id: ch.id,
+      entryId,
+      title: ch.name || "Tantangan Tanpa Judul",
+      description: ch.description || "",
+      category: categoryName,
+      company: companyName,
+      companyInitials: initials,
+      verified,
+      reward,
+      prizePool,
+      deadline: rawDeadline,
+      rawDeadline,
+      formattedDeadline,
+      isOverdue,
+      challengeStatus,
+      entryStatus,
+      participationType: entry.participation_type || "individual",
+      teamName: entry.team_name_snapshot || "",
+      hasSubmission,
+      submissionDriveUrl,
+      thumbnailPath: ch.thumbnail_path,
+      isActiveSlot,
+      bgFrom: gradient.bgFrom,
+      bgVia: gradient.bgVia,
+      bgTo: gradient.bgTo,
+    });
+  };
+
+  (memberRows ?? []).forEach((row: any) => {
+    const entry = Array.isArray(row.challenge_entries)
+      ? row.challenge_entries[0]
+      : row.challenge_entries;
+    processEntryRow(entry);
+  });
+
+  (directRows ?? []).forEach((entry: any) => {
+    processEntryRow(entry);
+  });
+
+  // ── 4. Process summary statistics ─────────────────────────────
+  const allWorkspaceItems = Array.from(itemsMap.values());
+  const activeItems = allWorkspaceItems.filter((item) => item.isActiveSlot);
+  const completedItems = allWorkspaceItems.filter((item) => !item.isActiveSlot);
+
+  const activeCount = activeItems.length;
+  const completedCount = completedItems.length;
+
+  const totalPotentialReward = activeItems.reduce((sum, item) => sum + item.prizePool, 0);
+
+  const formatPotentialLabel = (amount: number): string => {
+    if (!amount || amount === 0) return "Rp 0";
+    if (amount >= 1_000_000_000) {
+      const bill = amount / 1_000_000_000;
+      return `Rp ${bill % 1 === 0 ? bill.toFixed(0) : bill.toFixed(1)}M`;
+    }
+    if (amount >= 1_000_000) {
+      const mill = amount / 1_000_000;
+      return `Rp ${mill % 1 === 0 ? mill.toFixed(0) : mill.toFixed(0)}jt`;
+    }
+    return `Rp ${amount.toLocaleString("id-ID")}`;
+  };
+
+  const potentialRewardLabel = formatPotentialLabel(totalPotentialReward);
 
   return (
-    <div className="flex flex-col w-full max-w-[1160px] mx-auto gap-6 px-4 sm:px-5 md:px-6 lg:px-7 xl:px-8 2xl:px-10 py-6 mb-16">
-      {/* ── Header ────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-1">
-        <div className="flex flex-col gap-1 max-w-[640px]">
-          <h1 className="text-[36px] md:text-[40px] font-bold text-gray-900 tracking-[-0.025em] leading-[1.1]">
-            Ruang kerja anda
-          </h1>
-          <p className="text-[17px] md:text-[18px] text-gray-600 leading-[1.35]">
-            Pantau seluruh challenge yang sedang anda kerjakan, dari tahap awal hingga hasil penilaian akhir.
-          </p>
-        </div>
-        <div className="flex items-center justify-start sm:justify-end">
-          <Link
-            href="/solver"
-            className="inline-flex items-center justify-center gap-2.5 h-[50px] px-[22px] bg-primary-500 hover:bg-primary-600 active:bg-primary-700 text-white text-[16px] font-semibold rounded-full transition-colors shadow-[0_6px_16px_rgba(0,0,0,0.14)]"
-          >
-            <Plus size={20} strokeWidth={2.2} />
-            Cari Challenge Baru
-          </Link>
-        </div>
-      </div>
-
-      {/* ── Status summary cards ───────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-3.5 md:gap-4 lg:gap-5 w-full">
-        <WorkspaceStatusCard
-          iconBg="bg-primary-100"
-          iconColor="text-primary-500"
-          IconComponent={Briefcase}
-          value={String(inProgressCount)}
-          label="Challenge sedang dikerjakan"
-        />
-        <WorkspaceStatusCard
-          iconBg="bg-[#FFF2D6]"
-          iconColor="text-[#C88A00]"
-          IconComponent={CheckCircle2}
-          value={String(completedCount)}
-          label="Challenge telah berakhir"
-        />
-        <WorkspaceStatusCard
-          iconBg="bg-[#E4F4E6]"
-          iconColor="text-[#1F9D45]"
-          IconComponent={Award}
-          value={potentialLabel}
-          label="Total potensi perolehan hadiah"
-        />
-      </div>
-
-      {/* ── Tabs ──────────────────────────────────────── */}
-      <div className="flex flex-col w-full mt-4">
-        <div className="flex items-stretch gap-8 lg:gap-9 border-b border-gray-200 h-[52px] overflow-x-auto overflow-y-hidden scrollbar-hidden">
-          {TABS.map(({ id, label, count }) => {
-            const isActive = activeTab === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setActiveTab(id)}
-                className={[
-                  "relative inline-flex items-center gap-2 h-[52px] px-2.5 whitespace-nowrap text-[18px] leading-none transition-colors",
-                  isActive ? "text-gray-900 font-semibold" : "text-gray-600 font-medium hover:text-gray-800",
-                ].join(" ")}
-              >
-                {label}
-                <span
-                  className={[
-                    "inline-flex items-center justify-center min-w-[24px] h-6 px-1.5 rounded-full text-[13px] font-semibold leading-none",
-                    isActive
-                      ? "bg-primary-100 text-primary-500"
-                      : "bg-gray-100 text-gray-600",
-                  ].join(" ")}
-                >
-                  {count}
-                </span>
-                {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary-500" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── Challenge grid ─────────────────────────────── */}
-      {filtered.length === 0 ? (
-        <WorkspaceEmptyState />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-4 lg:gap-[18px] w-full">
-          {filtered.map((challenge) => (
-            <WorkspaceChallengeCard key={challenge.id} challenge={challenge} />
-          ))}
-        </div>
-      )}
-    </div>
+    <WorkspaceClient
+      activeItems={activeItems}
+      completedItems={completedItems}
+      activeCount={activeCount}
+      completedCount={completedCount}
+      totalPotentialReward={totalPotentialReward}
+      potentialRewardLabel={potentialRewardLabel}
+    />
   );
 }
