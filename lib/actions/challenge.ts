@@ -209,51 +209,42 @@ export async function createChallengeAction(
       if (reqError) console.error("Gagal simpan requirements:", reqError);
     }
 
-    // 8. Simpan Kriteria Penilaian (judging_criteria)
-    const expertTitles = formData.getAll("expert_criteria") as string[];
-    const expertDescs = formData.getAll("expert_criteria_description") as string[];
-    const pitchTitles = formData.getAll("pitch_criteria") as string[];
-    const pitchDescs = formData.getAll("pitch_criteria_description") as string[];
+  // 8. Simpan Kriteria Penilaian (judging_criteria)
+const expertTitles = formData.getAll("expert_criteria") as string[];
+const expertDescs = formData.getAll(
+  "expert_criteria_description"
+) as string[];
 
-    const criteriaToInsert = [
-      ...expertTitles.map((title, i) => ({
-        challenge_id: challengeId,
-        stage: "expert",
-        name: title.trim(),
-        description: expertDescs[i]?.trim() || null,
-      })),
-      ...pitchTitles.map((title, i) => ({
-        challenge_id: challengeId,
-        stage: "pitch",
-        name: title.trim(),
-        description: pitchDescs[i]?.trim() || null,
-      })),
-    ].filter((c) => c.name.length > 0);
+const pitchTitles = formData.getAll("pitch_criteria") as string[];
+const pitchDescs = formData.getAll(
+  "pitch_criteria_description"
+) as string[];
 
-    if (criteriaToInsert.length > 0) {
-      const { error: critError } = await supabase
-        .from("judging_criteria")
-        .insert(criteriaToInsert);
+const criteriaToInsert = [
+  ...expertTitles.map((title, i) => ({
+    challenge_id: challengeId,
+    stage: "expert_judging",
+    name: title.trim(),
+    description: expertDescs[i]?.trim() || null,
+  })),
 
-      if (critError) {
-        console.error("Gagal simpan criteria (percobaan 1):", critError);
-        // Fallback: sertakan juga field 'title' jika tabel DB mengharuskan nama kolom 'title'
-        const fallbackCriteria = criteriaToInsert.map((c) => ({
-          challenge_id: c.challenge_id,
-          stage: c.stage,
-          name: c.name,
-          title: c.name,
-          description: c.description,
-        }));
-        const { error: retryError } = await supabase
-          .from("judging_criteria")
-          .insert(fallbackCriteria as any);
+  ...pitchTitles.map((title, i) => ({
+    challenge_id: challengeId,
+    stage: "final_pitch",
+    name: title.trim(),
+    description: pitchDescs[i]?.trim() || null,
+  })),
+].filter((criterion) => criterion.name.length > 0);
 
-        if (retryError) {
-          console.error("Gagal simpan criteria (percobaan 2):", retryError);
-        }
-      }
-    }
+if (criteriaToInsert.length > 0) {
+  const { error: critError } = await supabase
+    .from("judging_criteria")
+    .insert(criteriaToInsert);
+
+  if (critError) {
+    console.error("Gagal simpan criteria:", critError);
+  }
+}
 
     // 9. Simpan Linimasa Challenge (challenge_timelines)
     const openStart = (formData.get("open_start") as string) || null;
