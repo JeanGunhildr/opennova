@@ -5,8 +5,8 @@ export async function createClient() {
   const cookieStore = await cookies();
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHED_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder-opennova.supabase.co",
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHED_KEY || "placeholder-anon-key",
     {
       cookies: {
         getAll() {
