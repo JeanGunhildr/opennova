@@ -165,6 +165,7 @@ export default function ChallengeContentArea({
       role: "Solver",
       time: formatTimestamp(),
       text,
+      created_at: new Date().toISOString(),
     };
 
     if (challengeId) {

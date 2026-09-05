@@ -13,6 +13,7 @@ import ChallengeActionWidget, {
   type ChallengeActionState,
   type CaptainTeamOption
 } from "./ChallengeActionWidget";
+import ScorePanel, { type ScoreCriterion } from "./ScorePanel";
 import type { ObjectiveItem, RequirementItem, CriterionItem, TimelineItem } from "./ChallengeContentArea";
 import type { DiscussionComment } from "@/lib/actions/discussion";
 
@@ -49,6 +50,9 @@ export interface ChallengeDetailClientProps {
   userTeamName?: string;
   captainTeams?: CaptainTeamOption[];
   existingSubmissionUrl?: string | null;
+  // Score panel props
+  scoreCriteria?: ScoreCriterion[];
+  isFullyJudged?: boolean;
 }
 
 export default function ChallengeDetailClient({
@@ -82,6 +86,8 @@ export default function ChallengeDetailClient({
   userTeamName = "",
   captainTeams = [],
   existingSubmissionUrl = "",
+  scoreCriteria = [],
+  isFullyJudged = false,
 }: ChallengeDetailClientProps) {
   const [activeTab, setActiveTab] = useState<string>("Deskripsi");
   const [discussionCount, setDiscussionCount] = useState<number>(discussions.length);
@@ -176,6 +182,16 @@ export default function ChallengeDetailClient({
             captainTeams={captainTeams}
             existingSubmissionUrl={existingSubmissionUrl}
           />
+
+          {/* Render ScorePanel below ChallengeActionWidget if solver has submitted */}
+          {Boolean(existingSubmissionUrl) && scoreCriteria.length > 0 && (
+            <ScorePanel
+              criteria={scoreCriteria}
+              expertWeight={expertWeight}
+              pitchWeight={pitchWeight}
+              isFullyJudged={isFullyJudged}
+            />
+          )}
 
           {/* Alert Notice Box matching screenshot for Team Members */}
           {userParticipationState === "ACTIVE_JOINED_TEAM_MEMBER" && (
