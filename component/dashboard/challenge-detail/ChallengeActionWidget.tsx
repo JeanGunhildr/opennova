@@ -110,10 +110,15 @@ export default function ChallengeActionWidget({
   const router = useRouter();
   const [state, setState] = useState<ChallengeActionState>(initialState);
   const [teamName, setTeamName] = useState(initialTeamName);
-  const [submissionUrl, setSubmissionUrl] = useState(
-    existingSubmissionUrl || "",
-  );
+
+  // Separate submittedUrl (from DB) and inputUrl (user typing in form)
+  const [submittedUrl, setSubmittedUrl] = useState<string>(existingSubmissionUrl || "");
+  const [inputUrl, setInputUrl] = useState<string>(existingSubmissionUrl || "");
+  
   const [isSubmittingUrl, setIsSubmittingUrl] = useState(false);
+
+  // Modal konfirmasi state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // Join options & Modal state
   const [isJoining, setIsJoining] = useState(false);
@@ -125,7 +130,9 @@ export default function ChallengeActionWidget({
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
   // Checkbox agreement state
-  const [agreed, setAgreed] = useState(false);
+  const [agreed, setAgreed] = useState(Boolean(existingSubmissionUrl));
+
+  const isSubmitted = Boolean(submittedUrl);
 
   // Handle Join Individu
   const handleJoinIndividual = async () => {
@@ -196,27 +203,49 @@ export default function ChallengeActionWidget({
     }
   };
 
-  // Handle Submit Drive Link
-  const handleSubmitDriveUrl = async (e: React.FormEvent) => {
+  // Step 1: Pre-submit check & validate URL format, then open Confirmation Modal
+  const handlePreSubmitCheck = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!submissionUrl.trim()) {
-      setActionError(
-        "Masukkan tautan Google Drive submission terlebih dahulu.",
-      );
+    setActionError(null);
+    setActionSuccess(null);
+
+    const cleanUrl = inputUrl.trim();
+    if (!cleanUrl) {
+      setActionError("Masukkan tautan Google Drive submission terlebih dahulu.");
       return;
     }
 
+    if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
+      setActionError("Tautan tidak valid. Pastikan diawali dengan http:// atau https://");
+      return;
+    }
+
+    if (!agreed) {
+      setActionError("Anda harus menyetujui Kesepakatan Hak Cipta Inovasi.");
+      return;
+    }
+
+    // Open confirmation modal
+    setShowConfirmModal(true);
+  };
+
+  // Step 2: Confirmed in modal → execute server action
+  const handleConfirmSubmit = async () => {
+    setShowConfirmModal(false);
     setIsSubmittingUrl(true);
     setActionError(null);
     setActionSuccess(null);
 
-    const res = await submitChallengeDriveUrlAction(challengeId, submissionUrl);
+    const cleanUrl = inputUrl.trim();
+    const res = await submitChallengeDriveUrlAction(challengeId, cleanUrl);
     setIsSubmittingUrl(false);
 
     if (res.success) {
+      setSubmittedUrl(cleanUrl); // Lock form ONLY after DB succeeds!
       setActionSuccess("Tautan submission Google Drive berhasil disimpan!");
       router.refresh();
     } else {
+      // Failed in DB → Do NOT lock form! Allow editing & retry.
       setActionError(res.error || "Gagal menyimpan tautan submission.");
     }
   };
@@ -346,8 +375,8 @@ export default function ChallengeActionWidget({
               <h3 className="text-[14.5px] font-bold text-gray-900">
                 Submission Individu
               </h3>
-              {/* Hanya tampilkan tombol batal jika belum submit */}
-              {!existingSubmissionUrl && (
+              {/* Hanya tampilkan tombol batal jika belum submit ke DB */}
+              {!isSubmitted && (
                 <button
                   type="button"
                   onClick={handleCancelJoin}
@@ -360,15 +389,15 @@ export default function ChallengeActionWidget({
               )}
             </div>
 
-            {/* ── Sudah submit: tampilkan link readonly + Buka Tautan ── */}
-            {submissionUrl ? (
+            {/* ── Sudah submit ke DB: tampilkan link read-only + Buka Tautan ── */}
+            {isSubmitted ? (
               <div className="space-y-3">
                 <StatusBanner
                   type="warning"
                   text="Inovasi anda sudah masuk ke dalam antrian penilaian. Tunggu hingga hasil penilaian keluar."
                 />
 
-                {/* Checkbox agreement (readonly, sudah dicentang) */}
+                {/* Checkbox agreement (read-only) */}
                 <div className="flex items-start gap-2 p-2 bg-gray-50 border border-gray-200 rounded-[10px]">
                   <input
                     type="checkbox"
@@ -396,12 +425,12 @@ export default function ChallengeActionWidget({
                       size={13}
                       className="flex-shrink-0 text-primary-500"
                     />
-                    <span className="truncate">{submissionUrl}</span>
+                    <span className="truncate">{submittedUrl}</span>
                   </div>
                 </div>
 
                 <a
-                  href={submissionUrl}
+                  href={submittedUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 w-full h-[38px] rounded-full bg-primary-500 hover:bg-primary-600 text-white text-[12px] font-bold transition-all"
@@ -410,8 +439,8 @@ export default function ChallengeActionWidget({
                 </a>
               </div>
             ) : (
-              /* ── Belum submit: tampilkan form input ── */
-              <form onSubmit={handleSubmitDriveUrl} className="space-y-3">
+              /* ── Belum submit ke DB: tampilkan form input bebas edit ── */
+              <form onSubmit={handlePreSubmitCheck} className="space-y-3">
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-700 mb-1">
                     Tautan Google Drive Submission
@@ -423,8 +452,8 @@ export default function ChallengeActionWidget({
                     />
                     <input
                       type="url"
-                      value={submissionUrl}
-                      onChange={(e) => setSubmissionUrl(e.target.value)}
+                      value={inputUrl}
+                      onChange={(e) => setInputUrl(e.target.value)}
                       placeholder="https://drive.google.com/file/d/..."
                       className="w-full h-[38px] rounded-full pl-8 pr-3 text-[12px] border border-gray-300 bg-white text-gray-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/15"
                       required
@@ -460,7 +489,7 @@ export default function ChallengeActionWidget({
 
                 <button
                   type="submit"
-                  disabled={!agreed || isSubmittingUrl}
+                  disabled={!agreed || !inputUrl.trim() || isSubmittingUrl}
                   className="w-full h-[38px] rounded-full bg-primary-500 hover:bg-primary-600 text-white text-[12px] font-bold transition-all disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
                 >
                   {isSubmittingUrl ? "Menyimpan..." : "Kirim Submission"}
@@ -477,7 +506,7 @@ export default function ChallengeActionWidget({
               <h3 className="text-[14.5px] font-bold text-gray-900">
                 Submission Ketua Tim
               </h3>
-              {!existingSubmissionUrl && (
+              {!isSubmitted && (
                 <button
                   type="button"
                   onClick={handleCancelJoin}
@@ -495,15 +524,15 @@ export default function ChallengeActionWidget({
               <span className="font-bold text-gray-900">{teamName}</span>.
             </p>
 
-            {/* ── Sudah submit: tampilkan link readonly + Buka Tautan ── */}
-            {submissionUrl ? (
+            {/* ── Sudah submit ke DB: tampilkan link read-only + Buka Tautan ── */}
+            {isSubmitted ? (
               <div className="space-y-3">
                 <StatusBanner
                   type="warning"
                   text="Inovasi anda sudah masuk ke dalam antrian penilaian. Tunggu hingga hasil penilaian keluar."
                 />
 
-                {/* Checkbox agreement (readonly) */}
+                {/* Checkbox agreement (read-only) */}
                 <div className="flex items-start gap-2 p-2 bg-gray-50 border border-gray-200 rounded-[10px]">
                   <input
                     type="checkbox"
@@ -531,12 +560,12 @@ export default function ChallengeActionWidget({
                       size={13}
                       className="flex-shrink-0 text-primary-500"
                     />
-                    <span className="truncate">{submissionUrl}</span>
+                    <span className="truncate">{submittedUrl}</span>
                   </div>
                 </div>
 
                 <a
-                  href={submissionUrl}
+                  href={submittedUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 w-full h-[38px] rounded-full bg-primary-500 hover:bg-primary-600 text-white text-[12px] font-bold transition-all"
@@ -545,8 +574,8 @@ export default function ChallengeActionWidget({
                 </a>
               </div>
             ) : (
-              /* ── Belum submit: tampilkan form input ── */
-              <form onSubmit={handleSubmitDriveUrl} className="space-y-3">
+              /* ── Belum submit ke DB: tampilkan form input ── */
+              <form onSubmit={handlePreSubmitCheck} className="space-y-3">
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-700 mb-1">
                     Tautan Google Drive Submission Tim
@@ -558,8 +587,8 @@ export default function ChallengeActionWidget({
                     />
                     <input
                       type="url"
-                      value={submissionUrl}
-                      onChange={(e) => setSubmissionUrl(e.target.value)}
+                      value={inputUrl}
+                      onChange={(e) => setInputUrl(e.target.value)}
                       placeholder="https://drive.google.com/file/d/..."
                       className="w-full h-[38px] rounded-full pl-8 pr-3 text-[12px] border border-gray-300 bg-white text-gray-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/15"
                       required
@@ -595,7 +624,7 @@ export default function ChallengeActionWidget({
 
                 <button
                   type="submit"
-                  disabled={!agreed || isSubmittingUrl}
+                  disabled={!agreed || !inputUrl.trim() || isSubmittingUrl}
                   className="w-full h-[38px] rounded-full bg-primary-500 hover:bg-primary-600 text-white text-[12px] font-bold transition-all disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
                 >
                   {isSubmittingUrl ? "Menyimpan..." : "Kirim Submission Tim"}
@@ -746,6 +775,64 @@ export default function ChallengeActionWidget({
                   {isJoining ? "Mendaftarkan..." : "Daftarkan Tim"}
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Konfirmasi Submission ────────────────────────── */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[18px] max-w-md w-full p-5 shadow-xl relative animate-in fade-in zoom-in duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <h3 className="text-[16px] font-bold text-gray-900 flex items-center gap-2">
+                <AlertTriangle size={18} className="text-primary-500" />
+                Kirim Submission?
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="py-4 space-y-3">
+              <p className="text-[13px] text-gray-700 leading-[1.6]">
+                Setelah submission dikirim, tautan Google Drive tidak dapat diubah lagi. Pastikan tautan sudah benar dan dapat diakses oleh seeker.
+              </p>
+
+              <div className="bg-[#FFF9E8] border border-[#FBE3B5] rounded-[12px] p-3 text-[12px] text-[#8C6210] flex items-start gap-2.5">
+                <AlertCircle size={16} className="text-[#D9822B] flex-shrink-0 mt-0.5" />
+                <p className="font-semibold">
+                  Peringatan: Pengiriman submission ini bersifat final.
+                </p>
+              </div>
+
+              <div className="p-2.5 rounded-[10px] bg-gray-50 border border-gray-200">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">Tautan yang akan dikirim:</p>
+                <p className="text-[12px] font-medium text-primary-600 truncate">{inputUrl}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                disabled={isSubmittingUrl}
+                className="h-9 px-4 rounded-full border border-gray-300 text-[12px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmSubmit}
+                disabled={isSubmittingUrl}
+                className="h-9 px-5 rounded-full bg-primary-500 hover:bg-primary-600 text-white text-[12px] font-bold transition-colors disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isSubmittingUrl ? "Mengirim..." : "Ya, Kirim"}
+              </button>
             </div>
           </div>
         </div>
