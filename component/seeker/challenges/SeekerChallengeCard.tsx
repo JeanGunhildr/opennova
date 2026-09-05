@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Users } from "lucide-react";
 
 export type ChallengeLifecycle = "open" | "expert" | "pitching" | "winner";
@@ -26,7 +27,7 @@ const LIFECYCLE_MAP: Record<ChallengeLifecycle, { label: string; bg: string; tex
 };
 
 export default function SeekerChallengeCard({ challenge }: { challenge: SeekerChallenge }) {
-  const { title, category, reward, participants, publishedDate, lifecycle, thumbnailUrl, bgFrom, bgVia, bgTo } = challenge;
+  const { id, title, category, reward, participants, publishedDate, lifecycle, thumbnailUrl, bgFrom, bgVia, bgTo } = challenge;
   const ls = LIFECYCLE_MAP[lifecycle] || LIFECYCLE_MAP.open;
 
   return (
@@ -103,15 +104,12 @@ export default function SeekerChallengeCard({ challenge }: { challenge: SeekerCh
           <p className="text-[12px]" style={{ color: "#737373" }}>Hadiah</p>
           <p className="text-white font-semibold" style={{ fontSize: "18px" }}>{reward}</p>
         </div>
-        <button
-          type="button"
-          disabled
-          aria-disabled="true"
-          title="Halaman Kelola sedang dalam tahap pengembangan"
-          className="inline-flex items-center h-9 px-[14px] rounded-full text-[13px] font-semibold bg-[#232323] text-[#737373] border border-[#373737] cursor-not-allowed select-none opacity-80"
+        <Link
+          href={`/seeker/challenges/${id}`}
+          className="inline-flex items-center h-9 px-[14px] rounded-full text-[13px] font-semibold bg-[#2A2829] text-white border border-[#4A4A4A] hover:bg-[#323131] hover:border-[#666666] transition-colors"
         >
           Kelola Challenge
-        </button>
+        </Link>
       </div>
     </article>
   );
