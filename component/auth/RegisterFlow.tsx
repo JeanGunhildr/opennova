@@ -55,12 +55,12 @@ function Step1({
 
   const roleOptions = isDark
     ? [
-        { id: "seeker" as const, label: "Seeker (Perusahaan)" },
-        { id: "solver" as const, label: "Solver (Peserta)" },
+        { id: "seeker" as const, label: "Seeker" },
+        { id: "solver" as const, label: "Solver" },
       ]
     : [
-        { id: "solver" as const, label: "Solver (Peserta)" },
-        { id: "seeker" as const, label: "Seeker (Perusahaan)" },
+        { id: "solver" as const, label: "Solver" },
+        { id: "seeker" as const, label: "Seeker" },
       ];
 
   function handleNext(event: FormEvent<HTMLFormElement>) {
