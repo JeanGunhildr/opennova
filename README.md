@@ -96,17 +96,100 @@ Melalui model tersebut, Opennova tidak hanya menjadi wadah pencarian solusi, tet
 
 🔗 **[Kunjungi Website Opennova](https://opennova-one.vercel.app)**
 
-### Screenshot Aplikasi
+### Screenshot Website
+
+#### 🔹 Fitur (Solver)
 
 <div align="center">
-  <img src="[URL_SCREENSHOT_1]" alt="Homepage" width="800"/>
-  <p><em>Homepage - Tampilan utama aplikasi</em></p>
-  
-  <img src="[URL_SCREENSHOT_2]" alt="Dashboard" width="800"/>
-  <p><em>Dashboard - Panel kontrol pengguna</em></p>
-  
-  <img src="[URL_SCREENSHOT_3]" alt="Feature" width="800"/>
-  <p><em>[Nama Fitur] - [Deskripsi screenshot]</em></p>
+
+  <img src="./screenshot/02-landing-solver.png" alt="Solver - Landing Page" width="800"/>
+  <p><em>Landing Page Solver - Halaman awal yang memperkenalkan Opennova dan mengarahkan Solver untuk mengakses platform.</em></p>
+
+  <img src="./screenshot/05-login-solver.png" alt="Solver - Login" width="800"/>
+  <p><em>Login Solver - Halaman untuk masuk ke akun Solver.</em></p>
+
+  <img src="./screenshot/06-register-solver.png" alt="Solver - Register" width="800"/>
+  <p><em>Register Solver - Halaman pendaftaran akun bagi pengguna yang ingin menjadi Solver.</em></p>
+
+  <img src="./screenshot/07-solver-explore.png" alt="Solver - Explore" width="800"/>
+  <p><em>Jelajah - Menampilkan berbagai Challenge aktif dari berbagai kategori yang dapat ditemukan dan diikuti Solver.</em></p>
+
+  <img src="./screenshot/08-solver-profile.png" alt="Solver - Profile" width="800"/>
+  <p><em>Profil - Menampilkan dan mengelola informasi profil Solver.</em></p>
+
+  <img src="./screenshot/08-solver-workspace.png" alt="Solver - Workspace" width="800"/>
+  <p><em>Ruang Kerja - Menampilkan Challenge yang sedang maupun telah diikuti serta membantu Solver memantau progress dan aktivitasnya.</em></p>
+
+  <img src="./screenshot/09-solver-team.png" alt="Solver - Team" width="800"/>
+  <p><em>Tim Anda - Memungkinkan Solver membuat dan bergabung dengan tim untuk mengikuti Challenge secara kolaboratif.</em></p>
+
+  <img src="./screenshot/10-solver-earnings.png" alt="Solver - Earnings" width="800"/>
+  <p><em>Perolehan - Menampilkan reward, sertifikat, dan saldo yang diperoleh Solver serta mendukung proses penarikan reward.</em></p>
+
+  <img src="./screenshot/11-solver-notifications.png" alt="Solver - Notifications" width="800"/>
+  <p><em>Notifikasi - Memberikan informasi terbaru mengenai Challenge, aktivitas, submission, reward, dan pembaruan penting lainnya.</em></p>
+
+</div>
+
+---
+
+#### 🔹 Fitur (Seeker)
+
+<div align="center">
+
+  <img src="./screenshot/01-landing-seeker.png" alt="Seeker - Landing Page" width="800"/>
+  <p><em>Landing Page Seeker - Halaman awal yang memperkenalkan manfaat Opennova bagi perusahaan dan organisasi yang membutuhkan solusi inovasi.</em></p>
+
+  <img src="./screenshot/03-login-seeker.png" alt="Seeker - Login" width="800"/>
+  <p><em>Login Seeker - Halaman untuk masuk ke akun Seeker.</em></p>
+
+  <img src="./screenshot/04-register-seeker.png" alt="Seeker - Register" width="800"/>
+  <p><em>Register Seeker - Halaman pendaftaran akun bagi perusahaan atau organisasi sebagai Seeker.</em></p>
+
+  <img src="./screenshot/12-seeker-dashboard.png" alt="Seeker - Dashboard" width="800"/>
+  <p><em>Dashboard - Panel utama untuk memantau aktivitas, Challenge, dan proses inovasi yang dikelola Seeker.</em></p>
+
+  <img src="./screenshot/13-seeker-challenge.png" alt="Seeker - Challenge" width="800"/>
+  <p><em>Challenge - Fitur untuk membuat dan mempublikasikan permasalahan atau kebutuhan inovasi kepada para Solver.</em></p>
+
+  <img src="./screenshot/14-seeker-manage-a.png" alt="Seeker - Manage Challenge A" width="800"/>
+  <p><em>Manage Challenge - Mengelola Challenge dan memantau proses solusi yang diajukan oleh Solver.</em></p>
+
+  <img src="./screenshot/15-seeker-manage-b.png" alt="Seeker - Manage Challenge B" width="800"/>
+  <p><em>Manage Challenge - Melanjutkan proses pengelolaan dan evaluasi solusi dari Solver.</em></p>
+
+  <img src="./screenshot/16-seeker-manage-c.png" alt="Seeker - Manage Challenge C" width="800"/>
+  <p><em>Manage Challenge - Mendukung proses seleksi dan pengelolaan hasil Challenge hingga tahap akhir.</em></p>
+
+  <img src="./screenshot/17-seeker-legal-a.png" alt="Seeker - Legal A" width="800"/>
+  <p><em>Legal - Informasi dan pengelolaan aspek legal yang berkaitan dengan Challenge.</em></p>
+
+  <img src="./screenshot/18-seeker-legal-b.png" alt="Seeker - Legal B" width="800"/>
+  <p><em>Legal - Detail dan kelanjutan pengelolaan aspek legal dalam proses Challenge.</em></p>
+
+  <img src="./screenshot/19-seeker-notifications.png" alt="Seeker - Notifications" width="800"/>
+  <p><em>Notifikasi - Memberikan informasi terbaru mengenai Challenge, submission, aktivitas Solver, dan pembaruan penting lainnya.</em></p>
+
+  <img src="./screenshot/20-seeker-profiles.png" alt="Seeker - Profile" width="800"/>
+  <p><em>Profil - Menampilkan dan mengelola informasi profil perusahaan atau organisasi sebagai Seeker.</em></p>
+
+</div>
+
+---
+
+#### 🔹 Fitur (Admin)
+
+<div align="center">
+
+  <img src="./screenshot/21-admin-dashboard.png" alt="Admin - Dashboard" width="800"/>
+  <p><em>Dashboard - Panel kontrol Admin untuk memantau aktivitas dan kondisi ekosistem Opennova secara keseluruhan.</em></p>
+
+  <img src="./screenshot/22-admin-users.png" alt="Admin - Users" width="800"/>
+  <p><em>Manajemen Pengguna - Mengelola dan memantau pengguna yang terdaftar sebagai Seeker maupun Solver.</em></p>
+
+  <img src="./screenshot/23-admin-certification.png" alt="Admin - Certification" width="800"/>
+  <p><em>Manajemen Sertifikasi - Mengelola proses verifikasi dan penerbitan sertifikat bagi Solver yang memperoleh penghargaan.</em></p>
+
 </div>
 
 ---
