@@ -3,8 +3,13 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Eye, EyeOff } from "lucide-react";
+
 import { OpenNovaLogo } from "@/component/landing/Logo";
-import PopupToast, { type ToastNotification } from "@/component/ui/PopupToast";
+import PopupToast, {
+  type ToastNotification,
+} from "@/component/ui/PopupToast";
+
+import { createClient } from "@/lib/supabase/client";
 
 export default function AdminLoginForm() {
   const router = useRouter();
@@ -14,14 +19,18 @@ export default function AdminLoginForm() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<ToastNotification | null>(null);
 
-  function handleLogin(event: FormEvent<HTMLFormElement>) {
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
     setError("");
+    setLoading(true);
 
     const formData = new FormData(event.currentTarget);
+
     const email = formData.get("email");
     const password = formData.get("password");
 
+    // ── 1. Validasi input ─────────────────────────────────────
     if (
       typeof email !== "string" ||
       typeof password !== "string" ||
@@ -29,24 +38,128 @@ export default function AdminLoginForm() {
       !password
     ) {
       const msg = "Email dan password wajib diisi.";
+
       setError(msg);
-      setToast({ type: "error", title: "Validasi Gagal", message: msg });
+
+      setToast({
+        type: "error",
+        title: "Validasi Gagal",
+        message: msg,
+      });
+
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
+    try {
+      const supabase = createClient();
 
-    // NOTE: UI-only mock auth flow — sambungkan ke Supabase / backend admin
-    // (role-based auth) saat API admin tersedia.
-    setToast({
-      type: "success",
-      title: "Berhasil Masuk!",
-      message: "Selamat datang kembali, Admin. Mengarahkan ke dashboard...",
-    });
+      // ── 2. Login ke Supabase Auth ───────────────────────────
+      const { data: authData, error: authError } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-    setTimeout(() => {
-      router.push("/admin/dashboard");
-    }, 900);
+      if (authError) {
+        const msg =
+          authError.message === "Invalid login credentials"
+            ? "Email atau password salah."
+            : authError.message;
+
+        setError(msg);
+
+        setToast({
+          type: "error",
+          title: "Login Gagal",
+          message: msg,
+        });
+
+        setLoading(false);
+        return;
+      }
+
+      const user = authData.user;
+
+      if (!user) {
+        throw new Error("User tidak ditemukan setelah login.");
+      }
+
+      // ── 3. Ambil role dari tabel profiles ───────────────────
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error("Error fetching admin profile:", profileError);
+
+        // Jangan biarkan session tetap aktif jika role gagal diverifikasi
+        await supabase.auth.signOut();
+
+        const msg = "Gagal memverifikasi role akun.";
+
+        setError(msg);
+
+        setToast({
+          type: "error",
+          title: "Verifikasi Gagal",
+          message: msg,
+        });
+
+        setLoading(false);
+        return;
+      }
+
+      // ── 4. Pastikan role adalah admin ───────────────────────
+      if (profile?.role !== "admin") {
+        // User berhasil login Auth, tetapi bukan admin.
+        // Session langsung dihapus.
+        await supabase.auth.signOut();
+
+        const msg = "Akun ini tidak memiliki akses ke Admin Panel.";
+
+        setError(msg);
+
+        setToast({
+          type: "error",
+          title: "Akses Ditolak",
+          message: msg,
+        });
+
+        setLoading(false);
+        return;
+      }
+
+      // ── 5. Berhasil login sebagai admin ─────────────────────
+      setToast({
+        type: "success",
+        title: "Berhasil Masuk!",
+        message:
+          "Selamat datang kembali, Admin. Mengarahkan ke dashboard...",
+      });
+
+      // Beri waktu toast tampil sebelum redirect
+      setTimeout(() => {
+        router.push("/admin/dashboard");
+        router.refresh();
+      }, 700);
+    } catch (err) {
+      console.error("Admin login error:", err);
+
+      const msg = "Terjadi kesalahan saat login. Silakan coba lagi.";
+
+      setError(msg);
+
+      setToast({
+        type: "error",
+        title: "Login Gagal",
+        message: msg,
+      });
+
+      setLoading(false);
+    }
   }
 
   return (
@@ -54,15 +167,21 @@ export default function AdminLoginForm() {
       {/* Header */}
       <div className="flex flex-col items-center pt-9 pb-5 px-9">
         <OpenNovaLogo className="mb-4" />
+
         <span
           className="mb-3 text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"
-          style={{ background: "#FFE4E1", color: "#B91413" }}
+          style={{
+            background: "#FFE4E1",
+            color: "#B91413",
+          }}
         >
           Admin Panel
         </span>
+
         <h1 className="text-[26px] font-bold tracking-[-0.02em] leading-[1.15] text-gray-900 text-center">
           Masuk sebagai Admin
         </h1>
+
         <p className="mt-2 text-[14px] text-[#7D7D7D] leading-[1.4] text-center">
           Kelola platform OpenNova melalui panel admin.
         </p>
@@ -70,6 +189,7 @@ export default function AdminLoginForm() {
 
       {/* Form */}
       <form className="px-9 pb-4" onSubmit={handleLogin}>
+        {/* Email */}
         <div className="mb-4">
           <label
             htmlFor="admin-email"
@@ -77,6 +197,7 @@ export default function AdminLoginForm() {
           >
             Email
           </label>
+
           <input
             id="admin-email"
             name="email"
@@ -88,6 +209,7 @@ export default function AdminLoginForm() {
           />
         </div>
 
+        {/* Password */}
         <div className="mb-4">
           <label
             htmlFor="admin-password"
@@ -95,6 +217,7 @@ export default function AdminLoginForm() {
           >
             Password
           </label>
+
           <div className="relative">
             <input
               id="admin-password"
@@ -105,9 +228,14 @@ export default function AdminLoginForm() {
               autoComplete="current-password"
               className="w-full h-[46px] rounded-full border border-[#E5E7EB] bg-[#F0F3F6] px-4 pr-12 text-[14px] text-gray-900 placeholder:text-[#999999] outline-none focus:border-[#E30000] focus:bg-white focus:ring-2 focus:ring-[#E30000]/20 transition-all"
             />
+
             <button
               type="button"
-              aria-label={showPass ? "Sembunyikan password" : "Tampilkan password"}
+              aria-label={
+                showPass
+                  ? "Sembunyikan password"
+                  : "Tampilkan password"
+              }
               onClick={() => setShowPass((prev) => !prev)}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A2A2A2] hover:text-gray-700 transition-colors"
             >
@@ -116,8 +244,14 @@ export default function AdminLoginForm() {
           </div>
         </div>
 
-        {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
+        {/* Error */}
+        {error && (
+          <p className="mb-4 text-sm text-red-500">
+            {error}
+          </p>
+        )}
 
+        {/* Remember + Forgot Password */}
         <div className="flex items-center justify-between mb-5">
           <label className="flex items-center gap-2 text-[14px] text-gray-900 cursor-pointer select-none">
             <input
@@ -136,6 +270,7 @@ export default function AdminLoginForm() {
           </button>
         </div>
 
+        {/* Submit */}
         <button
           type="submit"
           disabled={loading}
@@ -152,14 +287,19 @@ export default function AdminLoginForm() {
         </button>
       </form>
 
+      {/* Footer */}
       <div className="px-9 pb-8 pt-1 flex justify-center">
         <p className="text-[13px] text-gray-400 text-center">
-          Halaman ini khusus untuk Admin OpenNova. Hubungi tim IT jika Anda
-          mengalami kendala akses.
+          Halaman ini khusus untuk Admin OpenNova. Hubungi tim IT jika
+          Anda mengalami kendala akses.
         </p>
       </div>
 
-      <PopupToast toast={toast} onDismiss={() => setToast(null)} />
+      {/* Toast */}
+      <PopupToast
+        toast={toast}
+        onDismiss={() => setToast(null)}
+      />
     </div>
   );
 }

@@ -1,11 +1,68 @@
-import { Users, Building2, Trophy, Wallet, Landmark } from "lucide-react";
+import { redirect } from "next/navigation";
+
+import {
+  Users,
+  Building2,
+  Trophy,
+  Wallet,
+  Landmark,
+} from "lucide-react";
+
 import AdminPageHeader from "@/component/admin/AdminPageHeader";
 import StatCard from "@/component/admin/StatCard";
 import ActiveChallengesTable from "@/component/admin/ActiveChallengesTable";
-import CompletedChallengesTable from "@/component/admin/CompletedChallengesTable";
-import { formatRupiah, getDashboardSummary } from "@/lib/data/admin";
 
-export default function AdminDashboardPage() {
+import {
+  formatRupiah,
+  getDashboardSummary,
+} from "@/lib/data/admin";
+
+import { getAdminChallenges } from "@/lib/data/admin-server";
+
+import { createClient } from "@/lib/supabase/server";
+
+export default async function AdminDashboardPage() {
+  const supabase = await createClient();
+
+  // ────────────────────────────────────────────────────────
+  // Authentication
+  // ────────────────────────────────────────────────────────
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Belum login
+  if (!user) {
+    redirect("/admin/login");
+  }
+
+  // ────────────────────────────────────────────────────────
+  // Authorization
+  // ────────────────────────────────────────────────────────
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  // Profile tidak ditemukan / error
+  if (profileError || !profile) {
+    redirect("/");
+  }
+
+  // Bukan admin
+  if (profile.role !== "admin") {
+    redirect("/");
+  }
+
+  // ────────────────────────────────────────────────────────
+  // Fetch dashboard data
+  // ────────────────────────────────────────────────────────
+
+  const challenges = await getAdminChallenges();
+
   const summary = getDashboardSummary();
 
   return (
@@ -23,18 +80,21 @@ export default function AdminDashboardPage() {
           icon={Users}
           hint="Terdaftar di platform"
         />
+
         <StatCard
           label="Total Seeker"
           value={summary.totalSeeker.toLocaleString("id-ID")}
           icon={Building2}
           hint="Perusahaan & organisasi"
         />
+
         <StatCard
           label="Total Challenge Aktif"
           value={summary.totalActiveChallenge.toLocaleString("id-ID")}
           icon={Trophy}
           hint="Sedang berjalan"
         />
+
         <StatCard
           label="Pendapatan Platform"
           value={formatRupiah(summary.platformRevenue)}
@@ -42,6 +102,7 @@ export default function AdminDashboardPage() {
           hint="Biaya layanan 10% per challenge"
           tone="brand"
         />
+
         <StatCard
           label="Dana Escrow Tertahan"
           value={formatRupiah(summary.escrowHeld)}
@@ -50,10 +111,9 @@ export default function AdminDashboardPage() {
         />
       </div>
 
-      {/* Tables */}
+      {/* Challenge table */}
       <div className="flex flex-col gap-6">
-        <ActiveChallengesTable />
-        <CompletedChallengesTable />
+        <ActiveChallengesTable challenges={challenges} />
       </div>
     </div>
   );
