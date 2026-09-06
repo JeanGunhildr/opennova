@@ -268,14 +268,14 @@ TypeScript   	: TypeScript v5
 ### System Architecture
 
 <div align="center">
-  <img src="[URL_SCREENSHOT_1]" alt="system_architecture" width="800"/>
+  <img src="./screenshot/design-architecture.jpeg" alt="system_architecture" width="800"/>
 </div>
 ```
 
 ### Database Schema
 
 <div align="center">
-  <img src="[URL_SCREENSHOT_1]" alt="database_schema" width="800"/>
+  <img src="./screenshot/database-schema.jpeg" alt="database_schema" width="800"/>
 </div>
 ```
 
