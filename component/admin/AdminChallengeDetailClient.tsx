@@ -17,6 +17,7 @@ import {
   AlertCircle,
   Check,
   Download,
+  Ban,
 } from "lucide-react";
 
 import type { AdminChallengeDetail } from "@/lib/data/admin-server";
@@ -28,6 +29,7 @@ import { StatusPill, activeChallengeStatusTone } from "./StatusPill";
 import {
   approveChallengeAction,
   rejectChallengeAction,
+  takeDownChallengeAction,
 } from "@/lib/actions/admin-challenge";
 
 interface AdminChallengeDetailClientProps {
@@ -38,9 +40,9 @@ export default function AdminChallengeDetailClient({
   challenge,
 }: AdminChallengeDetailClientProps) {
   const router = useRouter();
-  const [modalAction, setModalAction] = useState<"approve" | "reject" | null>(
-    null
-  );
+  const [modalAction, setModalAction] = useState<
+    "approve" | "reject" | "takedown" | null
+  >(null);
   const [isPending, setIsPending] = useState(false);
   const [toastMessage, setToastMessage] = useState<{
     text: string;
@@ -50,6 +52,15 @@ export default function AdminChallengeDetailClient({
   const isPendingStatus =
     challenge.status === "Menunggu Persetujuan" ||
     challenge.rawStatus === "pending";
+
+  const isTakedownStatus =
+    challenge.status === "Takedown" || challenge.rawStatus === "taken_down";
+
+  const isActiveStatus =
+    !isPendingStatus &&
+    !isTakedownStatus &&
+    challenge.rawStatus !== "completed" &&
+    challenge.rawStatus !== "rejected";
 
   const showToast = (text: string, type: "success" | "error") => {
     setToastMessage({ text, type });
@@ -61,16 +72,22 @@ export default function AdminChallengeDetailClient({
 
     setIsPending(true);
     try {
-      const res =
-        modalAction === "approve"
-          ? await approveChallengeAction(challenge.id)
-          : await rejectChallengeAction(challenge.id);
+      let res;
+      if (modalAction === "approve") {
+        res = await approveChallengeAction(challenge.id);
+      } else if (modalAction === "reject") {
+        res = await rejectChallengeAction(challenge.id);
+      } else {
+        res = await takeDownChallengeAction(challenge.id);
+      }
 
       if (res.success) {
         showToast(
           modalAction === "approve"
             ? `Challenge "${challenge.name}" berhasil disetujui!`
-            : `Challenge "${challenge.name}" telah ditolak.`,
+            : modalAction === "reject"
+            ? `Challenge "${challenge.name}" telah ditolak.`
+            : `Challenge "${challenge.name}" berhasil di-takedown.`,
           "success"
         );
         setTimeout(() => {
@@ -136,6 +153,19 @@ export default function AdminChallengeDetailClient({
             </button>
           </div>
         )}
+
+        {isActiveStatus && (
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setModalAction("takedown")}
+              className="h-10 px-5 rounded-full border border-red-200 text-[#E30000] hover:bg-red-50 text-[13px] font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <Ban size={16} />
+              <span>Takedown Challenge</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Challenge Card */}
@@ -196,6 +226,18 @@ export default function AdminChallengeDetailClient({
               >
                 Setujui
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Takedown Banner Alert if taken_down */}
+        {isTakedownStatus && (
+          <div className="bg-red-50 border-b border-red-200 px-6 py-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Ban size={20} className="text-[#E30000] shrink-0" />
+              <p className="text-[13px] font-medium text-red-900 leading-snug">
+                Challenge ini telah di-takedown oleh Admin. Challenge tidak dapat diikuti atau menerima submission baru.
+              </p>
             </div>
           </div>
         )}
@@ -359,15 +401,19 @@ export default function AdminChallengeDetailClient({
               >
                 {modalAction === "approve" ? (
                   <CheckCircle2 size={22} />
-                ) : (
+                ) : modalAction === "reject" ? (
                   <AlertCircle size={22} />
+                ) : (
+                  <Ban size={22} />
                 )}
               </div>
               <div>
                 <h3 className="text-[16px] font-bold text-gray-900">
                   {modalAction === "approve"
                     ? "Setujui Challenge"
-                    : "Tolak Challenge"}
+                    : modalAction === "reject"
+                    ? "Tolak Challenge"
+                    : "Takedown Challenge"}
                 </h3>
                 <p className="text-[12px] text-gray-500">Konfirmasi Admin</p>
               </div>
@@ -376,7 +422,9 @@ export default function AdminChallengeDetailClient({
             <p className="text-[13.5px] text-gray-700 leading-relaxed mb-6">
               {modalAction === "approve"
                 ? "Apakah Anda yakin ingin menyetujui challenge ini? Challenge akan dipublikasikan dan status akan diperbarui menjadi aktif."
-                : "Apakah Anda yakin ingin menolak challenge ini? Challenge tidak akan dipublikasikan ke platform."}
+                : modalAction === "reject"
+                ? "Apakah Anda yakin ingin menolak challenge ini? Challenge tidak akan dipublikasikan ke platform."
+                : "Apakah Anda yakin ingin men-takedown challenge ini? Challenge yang sudah ditakedown tidak dapat diikuti atau menerima submission baru."}
             </p>
 
             <div className="flex items-center justify-end gap-2.5">
@@ -402,8 +450,10 @@ export default function AdminChallengeDetailClient({
                   <Loader2 size={16} className="animate-spin" />
                 ) : modalAction === "approve" ? (
                   "Ya, Setujui"
-                ) : (
+                ) : modalAction === "reject" ? (
                   "Ya, Tolak"
+                ) : (
+                  "Ya, Takedown"
                 )}
               </button>
             </div>

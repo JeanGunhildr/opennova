@@ -1333,6 +1333,23 @@ return {
   };
   }
 
+  // --------------------------------------------------------
+  // VALIDASI CHALLENGE STATUS
+  // --------------------------------------------------------
+
+  const { data: targetChallenge } = await supabase
+    .from("challenges")
+    .select("status")
+    .eq("id", challengeId)
+    .maybeSingle();
+
+  if (targetChallenge && targetChallenge.status === "taken_down") {
+    return {
+      success: false,
+      error: "Challenge ini telah di-takedown oleh Admin dan tidak dapat menerima submission baru.",
+    };
+  }
+
   // ========================================================
   // INDIVIDUAL
   // ========================================================

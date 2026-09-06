@@ -162,3 +162,73 @@ export async function rejectChallengeAction(challengeId: string): Promise<{
     };
   }
 }
+
+/**
+ * Takedown an active challenge. Updates challenges.status -> 'taken_down'.
+ */
+export async function takeDownChallengeAction(challengeId: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const { supabase, error: authError } = await verifyAdminAuth();
+    if (authError || !supabase) {
+      return { success: false, error: authError || "Autentikasi gagal." };
+    }
+
+    // Verify challenge exists and is eligible for takedown
+    const { data: ch, error: chErr } = await supabase
+      .from("challenges")
+      .select("id, status")
+      .eq("id", challengeId)
+      .maybeSingle();
+
+    if (chErr || !ch) {
+      return { success: false, error: "Challenge tidak ditemukan." };
+    }
+
+    const uneligibleStatuses = ["pending", "rejected", "completed", "taken_down"];
+    if (uneligibleStatuses.includes(ch.status)) {
+      return {
+        success: false,
+        error: `Challenge dengan status '${ch.status}' tidak dapat di-takedown.`,
+      };
+    }
+
+    // Update status to DB enum 'taken_down'
+    const { error: updateErr } = await supabase
+      .from("challenges")
+      .update({ status: "taken_down" })
+      .eq("id", challengeId);
+
+    if (updateErr) {
+      console.error("takeDownChallengeAction update error:", {
+        message: updateErr.message,
+        details: updateErr.details,
+        hint: updateErr.hint,
+        code: updateErr.code,
+      });
+      return {
+        success: false,
+        error: `Gagal men-takedown challenge: ${updateErr.message}`,
+      };
+    }
+
+    revalidatePath("/admin/dashboard");
+    revalidatePath("/admin/challenges");
+    revalidatePath(`/admin/challenges/${challengeId}`);
+    revalidatePath("/seeker/challenges");
+    revalidatePath("/solver");
+    revalidatePath(`/solver/challenge/${challengeId}`);
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("takeDownChallengeAction unhandled error:", err);
+    return {
+      success: false,
+      error:
+        err?.message ||
+        "Terjadi kesalahan server saat men-takedown challenge.",
+    };
+  }
+}

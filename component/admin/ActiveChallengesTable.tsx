@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Loader2,
   Check,
+  Ban,
 } from "lucide-react";
 
 import {
@@ -20,6 +21,7 @@ import type { ActiveChallengeRow } from "@/lib/data/admin";
 import {
   approveChallengeAction,
   rejectChallengeAction,
+  takeDownChallengeAction,
 } from "@/lib/actions/admin-challenge";
 
 import TableCard from "./TableCard";
@@ -30,7 +32,13 @@ import {
   activeChallengeStatusTone,
 } from "./StatusPill";
 
-type StatusFilter = "all" | "pending" | "active" | "completed" | "rejected";
+type StatusFilter =
+  | "all"
+  | "pending"
+  | "active"
+  | "completed"
+  | "rejected"
+  | "takedown";
 
 interface ActiveChallengesTableProps {
   challenges: ActiveChallengeRow[];
@@ -45,9 +53,9 @@ export default function ActiveChallengesTable({
   // Modal & Action states
   const [selectedChallenge, setSelectedChallenge] =
     useState<ActiveChallengeRow | null>(null);
-  const [actionType, setActionType] = useState<"approve" | "reject" | null>(
-    null
-  );
+  const [actionType, setActionType] = useState<
+    "approve" | "reject" | "takedown" | null
+  >(null);
   const [isPending, setIsPending] = useState(false);
   const [toastMessage, setToastMessage] = useState<{
     text: string;
@@ -69,7 +77,10 @@ export default function ActiveChallengesTable({
         row.status === "Selesai" || row.rawStatus === "completed";
       const isRejectedRow =
         row.status === "Ditolak" || row.rawStatus === "rejected";
-      const isActiveRow = !isPendingRow && !isCompletedRow && !isRejectedRow;
+      const isTakedownRow =
+        row.status === "Takedown" || row.rawStatus === "taken_down";
+      const isActiveRow =
+        !isPendingRow && !isCompletedRow && !isRejectedRow && !isTakedownRow;
 
       // Filter status
       let matchesStatus = true;
@@ -77,6 +88,7 @@ export default function ActiveChallengesTable({
       else if (statusFilter === "active") matchesStatus = isActiveRow;
       else if (statusFilter === "completed") matchesStatus = isCompletedRow;
       else if (statusFilter === "rejected") matchesStatus = isRejectedRow;
+      else if (statusFilter === "takedown") matchesStatus = isTakedownRow;
 
       if (!matchesStatus) return false;
 
@@ -97,6 +109,7 @@ export default function ActiveChallengesTable({
     let active = 0;
     let completed = 0;
     let rejected = 0;
+    let takedown = 0;
 
     challenges.forEach((row) => {
       const isPendingRow =
@@ -105,10 +118,13 @@ export default function ActiveChallengesTable({
         row.status === "Selesai" || row.rawStatus === "completed";
       const isRejectedRow =
         row.status === "Ditolak" || row.rawStatus === "rejected";
+      const isTakedownRow =
+        row.status === "Takedown" || row.rawStatus === "taken_down";
 
       if (isPendingRow) pending++;
       else if (isCompletedRow) completed++;
       else if (isRejectedRow) rejected++;
+      else if (isTakedownRow) takedown++;
       else active++;
     });
 
@@ -118,12 +134,13 @@ export default function ActiveChallengesTable({
       active,
       completed,
       rejected,
+      takedown,
     };
   }, [challenges]);
 
   const handleOpenModal = (
     row: ActiveChallengeRow,
-    type: "approve" | "reject"
+    type: "approve" | "reject" | "takedown"
   ) => {
     setSelectedChallenge(row);
     setActionType(type);
@@ -134,16 +151,22 @@ export default function ActiveChallengesTable({
 
     setIsPending(true);
     try {
-      const res =
-        actionType === "approve"
-          ? await approveChallengeAction(selectedChallenge.id)
-          : await rejectChallengeAction(selectedChallenge.id);
+      let res;
+      if (actionType === "approve") {
+        res = await approveChallengeAction(selectedChallenge.id);
+      } else if (actionType === "reject") {
+        res = await rejectChallengeAction(selectedChallenge.id);
+      } else {
+        res = await takeDownChallengeAction(selectedChallenge.id);
+      }
 
       if (res.success) {
         showToast(
           actionType === "approve"
             ? `Challenge "${selectedChallenge.name}" berhasil disetujui!`
-            : `Challenge "${selectedChallenge.name}" berhasil ditolak.`,
+            : actionType === "reject"
+            ? `Challenge "${selectedChallenge.name}" berhasil ditolak.`
+            : `Challenge "${selectedChallenge.name}" berhasil di-takedown.`,
           "success"
         );
       } else {
@@ -249,6 +272,19 @@ export default function ActiveChallengesTable({
                 Ditolak
                 <span className="ml-1 text-gray-400">({counts.rejected})</span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setStatusFilter("takedown")}
+                className={`px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all whitespace-nowrap ${
+                  statusFilter === "takedown"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900"
+                }`}
+              >
+                Takedown
+                <span className="ml-1 text-gray-400">({counts.takedown})</span>
+              </button>
             </div>
 
             {/* Search */}
@@ -278,6 +314,17 @@ export default function ActiveChallengesTable({
               const isPendingRow =
                 row.status === "Menunggu Persetujuan" ||
                 row.rawStatus === "pending";
+              const isCompletedRow =
+                row.status === "Selesai" || row.rawStatus === "completed";
+              const isRejectedRow =
+                row.status === "Ditolak" || row.rawStatus === "rejected";
+              const isTakedownRow =
+                row.status === "Takedown" || row.rawStatus === "taken_down";
+              const isActiveRow =
+                !isPendingRow &&
+                !isCompletedRow &&
+                !isRejectedRow &&
+                !isTakedownRow;
 
               return (
                 <tr
@@ -322,7 +369,7 @@ export default function ActiveChallengesTable({
                         <span>Lihat</span>
                       </Link>
 
-                      {/* Action 2: Approve & Reject if pending */}
+                      {/* Action for Pending: Approve & Reject */}
                       {isPendingRow && (
                         <>
                           <button
@@ -345,6 +392,19 @@ export default function ActiveChallengesTable({
                             <span>Tolak</span>
                           </button>
                         </>
+                      )}
+
+                      {/* Action for Active: Takedown */}
+                      {isActiveRow && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenModal(row, "takedown")}
+                          className="h-8 px-2.5 rounded-lg border border-red-200 text-[#E30000] hover:bg-red-50 text-[12px] font-semibold inline-flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Takedown Challenge"
+                        >
+                          <Ban size={14} />
+                          <span>Takedown</span>
+                        </button>
                       )}
                     </div>
                   </td>
@@ -380,15 +440,19 @@ export default function ActiveChallengesTable({
               >
                 {actionType === "approve" ? (
                   <CheckCircle2 size={22} />
-                ) : (
+                ) : actionType === "reject" ? (
                   <AlertCircle size={22} />
+                ) : (
+                  <Ban size={22} />
                 )}
               </div>
               <div>
                 <h3 className="text-[16px] font-bold text-gray-900">
                   {actionType === "approve"
                     ? "Setujui Challenge"
-                    : "Tolak Challenge"}
+                    : actionType === "reject"
+                    ? "Tolak Challenge"
+                    : "Takedown Challenge"}
                 </h3>
                 <p className="text-[12px] text-gray-500">Konfirmasi Tindakan Admin</p>
               </div>
@@ -397,7 +461,9 @@ export default function ActiveChallengesTable({
             <p className="text-[13.5px] text-gray-700 leading-relaxed mb-6">
               {actionType === "approve"
                 ? "Apakah Anda yakin ingin menyetujui challenge ini? Status akan diperbarui menjadi aktif dan Solver dapat mulai mendaftar."
-                : "Apakah Anda yakin ingin menolak challenge ini? Challenge tidak akan dipublikasikan ke platform."}
+                : actionType === "reject"
+                ? "Apakah Anda yakin ingin menolak challenge ini? Challenge tidak akan dipublikasikan ke platform."
+                : "Apakah Anda yakin ingin men-takedown challenge ini? Challenge yang sudah ditakedown tidak dapat diikuti atau menerima submission baru."}
             </p>
 
             <div className="p-3 bg-gray-50 border border-gray-200 rounded-[10px] mb-6 text-[12.5px]">
@@ -435,8 +501,10 @@ export default function ActiveChallengesTable({
                   <Loader2 size={16} className="animate-spin" />
                 ) : actionType === "approve" ? (
                   "Ya, Setujui"
-                ) : (
+                ) : actionType === "reject" ? (
                   "Ya, Tolak"
+                ) : (
+                  "Ya, Takedown"
                 )}
               </button>
             </div>

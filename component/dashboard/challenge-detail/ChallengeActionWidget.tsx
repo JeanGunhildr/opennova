@@ -48,6 +48,7 @@ export interface ChallengeActionWidgetProps {
   winnerName?: string;
   captainTeams?: CaptainTeamOption[];
   existingSubmissionUrl?: string | null;
+  status?: string;
 }
 
 function StatusBanner({
@@ -106,8 +107,20 @@ export default function ChallengeActionWidget({
   winnerName = "Irfan Satya",
   captainTeams = [],
   existingSubmissionUrl = "",
+  status,
 }: ChallengeActionWidgetProps) {
   const router = useRouter();
+
+  if ((status || "").toLowerCase() === "taken_down") {
+    return (
+      <div className="bg-white border border-gray-200 rounded-[14px] overflow-hidden shadow-xs p-4 space-y-3">
+        <StatusBanner
+          type="danger"
+          text="Challenge ini telah di-takedown oleh Admin. Pendaftaran dan pengiriman submission telah dihentikan."
+        />
+      </div>
+    );
+  }
   const [state, setState] = useState<ChallengeActionState>(initialState);
   const [teamName, setTeamName] = useState(initialTeamName);
 

@@ -29,7 +29,7 @@ export default function CertificateTemplateCard() {
         </p>
 
         <a
-          href="/certificates/template-sertifikat-opennova.pdf"
+          href="/certificates/template-sertifikat-opennova.docx"
           download
           className="mt-4 inline-flex items-center gap-2 h-[42px] px-5 rounded-full bg-[#E30000] hover:bg-[#CC0000] text-white text-[14px] font-semibold transition-colors"
         >

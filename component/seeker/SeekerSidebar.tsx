@@ -120,14 +120,6 @@ function SidebarContent({
         </ul>
       </nav>
 
-      <button
-        onClick={handleLogout}
-        className="w-full flex items-center gap-3 h-[44px] px-[14px] rounded-[9px] text-[15px] font-medium text-[#A4A4A4] hover:text-white hover:bg-white/5 transition-all"
-      >
-        <LogOut size={18} strokeWidth={1.8} />
-        <span>Keluar</span>
-      </button>
-
       {/* Profile widget */}
       <div className="mt-auto rounded-[10px] p-3 flex flex-col gap-3" style={{ background: "#232323", border: "1px solid #373737" }}>
         <div className="flex items-center gap-2.5">

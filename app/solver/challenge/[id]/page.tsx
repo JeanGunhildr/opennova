@@ -157,7 +157,12 @@ export default async function ChallengeDetailPage({
 
   const now = new Date();
 
-  if (deadlineObj && deadlineObj > now) {
+  if ((dbCh.status || "").toLowerCase() === "taken_down") {
+    heroStatus = {
+      label: "Di-takedown Admin",
+      style: "danger",
+    };
+  } else if (deadlineObj && deadlineObj > now) {
     const diffMs = deadlineObj.getTime() - now.getTime();
 
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));

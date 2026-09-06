@@ -185,6 +185,7 @@ export default function ChallengeDetailClient({
             teamName={userTeamName}
             captainTeams={captainTeams}
             existingSubmissionUrl={existingSubmissionUrl}
+            status={status}
           />
 
           {/* Render ScorePanel below ChallengeActionWidget if solver has joined & criteria exist */}
