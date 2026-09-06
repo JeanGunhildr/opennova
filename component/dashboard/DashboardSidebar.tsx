@@ -17,7 +17,7 @@ import {
   Menu,
   X,
   Users,
-  LogOut,
+  User,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -62,6 +62,11 @@ const NAV_ITEMS: NavItem[] = [
     href: "/solver/notifications",
     Icon: Bell,
     badge: 3,
+  },
+  {
+    label: "Profil Anda",
+    href: "/solver/profile",
+    Icon: User,
   },
 ];
 
@@ -239,31 +244,14 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
               );
             }
           )}
-
-          {/* Logout */}
-          <li>
-            <button
-              type="button"
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className="w-full flex items-center gap-3.5 h-[46px] px-3.5 rounded-[9px] text-[15px] font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <LogOut
-                size={20}
-                className="text-gray-500"
-                strokeWidth={1.8}
-              />
-
-              <span className="flex-1 text-left">
-                {isLoggingOut ? "Keluar..." : "Keluar"}
-              </span>
-            </button>
-          </li>
         </ul>
       </nav>
 
        {/* Profile block */}
-      <div className="mt-6 flex items-center gap-3 border border-gray-300 rounded-[10px] p-2.5 bg-white">
+      <Link
+        href="/solver/profile"
+        className="mt-6 flex items-center gap-3 border border-gray-300 hover:border-gray-400 rounded-[10px] p-2.5 bg-white transition-colors cursor-pointer"
+      >
         {/* Avatar */}
         <div className="flex-shrink-0 w-11 h-11 rounded-full bg-primary-500 flex items-center justify-center text-white text-[13px] font-bold select-none">
           {profile?.full_name
@@ -287,7 +275,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
           className="text-gray-400 flex-shrink-0"
           strokeWidth={1.8}
         />
-      </div>
+      </Link>
     </div>
   );
 }

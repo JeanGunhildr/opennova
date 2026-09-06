@@ -1,14 +1,18 @@
-﻿"use client";
+"use client";
 
 import { Camera, Building2, CheckCircle2 } from "lucide-react";
 
-const MOCK = {
-  name: "PT Telkom Indonesia",
-  subtitle: "Badan Usaha Milik Negara · Telekomunikasi",
-  verified: true,
-};
+interface CompanyIdentityCardProps {
+  companyName?: string;
+  orgType?: string;
+  email?: string;
+}
 
-export default function CompanyIdentityCard() {
+export default function CompanyIdentityCard({
+  companyName = "Perusahaan Seeker",
+  orgType = "Organisasi / Perusahaan",
+  email = "",
+}: CompanyIdentityCardProps) {
   return (
     <div
       className="rounded-[18px] p-[22px]"
@@ -47,20 +51,23 @@ export default function CompanyIdentityCard() {
         {/* Identity text */}
         <div className="flex flex-col gap-1 min-w-0 pt-1">
           <p className="font-bold text-white leading-tight" style={{ fontSize: "19px" }}>
-            {MOCK.name}
+            {companyName}
           </p>
           <p className="text-[13px]" style={{ color: "#737373" }}>
-            {MOCK.subtitle}
+            {orgType}
           </p>
-          {MOCK.verified && (
-            <div
-              className="inline-flex items-center gap-1.5 mt-1.5"
-              style={{ fontSize: "12px", fontWeight: 600, color: "#54D67A" }}
-            >
-              <CheckCircle2 size={14} strokeWidth={2.2} />
-              Terverifikasi
-            </div>
+          {email && (
+            <p className="text-[12px] truncate" style={{ color: "#A4A4A4" }}>
+              {email}
+            </p>
           )}
+          <div
+            className="inline-flex items-center gap-1.5 mt-1.5"
+            style={{ fontSize: "12px", fontWeight: 600, color: "#54D67A" }}
+          >
+            <CheckCircle2 size={14} strokeWidth={2.2} />
+            Terverifikasi
+          </div>
         </div>
       </div>
     </div>

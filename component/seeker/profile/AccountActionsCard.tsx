@@ -1,16 +1,21 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { LogOut } from "lucide-react";
 import LogoutConfirmationModal from "./LogoutConfirmationModal";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 export default function AccountActionsCard() {
   const [modalOpen, setModalOpen] = useState(false);
+  const router = useRouter();
 
-  function handleConfirmLogout() {
+  async function handleConfirmLogout() {
     setModalOpen(false);
-    // In production: call Supabase signOut then redirect
-    alert("Sesi telah diakhiri.");
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
   }
 
   return (

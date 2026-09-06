@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, AlertCircle } from "lucide-react";
+import { updateSeekerProfileSelfAction } from "@/lib/actions/user-profile";
 
-const ORG_TYPES = ["BUMN", "Swasta", "Startup", "Instansi Pemerintah", "NGO"];
+const ORG_TYPES = ["Swasta", "BUMN", "Startup", "Instansi Pemerintah", "NGO"];
 
 const FIELD_STYLE: React.CSSProperties = {
   height: "46px",
@@ -37,16 +38,28 @@ function Field({
   );
 }
 
-export default function CompanyInformationForm() {
-  const [companyName, setCompanyName] = useState("PT Telkom Indonesia");
-  const [taxNumber, setTaxNumber] = useState("01.574.816.3-091.000");
-  const [orgType, setOrgType] = useState("BUMN");
-  const [picName, setPicName] = useState("Budi Santoso");
-  const [picPhone, setPicPhone] = useState("+628119987776");
-  const [address, setAddress] = useState("Jl. Japati No.1, Bandung, Jawa Barat 40133");
-  const [bio, setBio] = useState("Telkom Indonesia adalah BUMN yang menyelenggarakan layanan teknologi informasi dan komunikasi serta jaringan telekomunikasi di Indonesia.");
+interface CompanyInformationFormProps {
+  initialData?: {
+    companyName: string;
+    email: string;
+    companyType: string;
+    representativeName: string;
+    phone: string;
+    website: string;
+    companyDescription: string;
+  };
+}
+
+export default function CompanyInformationForm({ initialData }: CompanyInformationFormProps) {
+  const [companyName, setCompanyName] = useState(initialData?.companyName || "");
+  const [orgType, setOrgType] = useState(initialData?.companyType || "Swasta");
+  const [picName, setPicName] = useState(initialData?.representativeName || "");
+  const [picPhone, setPicPhone] = useState(initialData?.phone || "");
+  const [website, setWebsite] = useState(initialData?.website || "");
+  const [description, setDescription] = useState(initialData?.companyDescription || "");
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const BIO_LIMIT = 500;
 
@@ -77,9 +90,31 @@ export default function CompanyInformationForm() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    if (saving) return;
+
     setSaving(true);
-    await new Promise(r => setTimeout(r, 900));
-    setSaving(false);
+    setMessage(null);
+
+    try {
+      const res = await updateSeekerProfileSelfAction({
+        companyName,
+        representativeName: picName,
+        phone: picPhone,
+        companyType: orgType,
+        companyDescription: description,
+        website,
+      });
+
+      if (res.success) {
+        setMessage({ type: "success", text: "Profil perusahaan berhasil diperbarui!" });
+      } else {
+        setMessage({ type: "error", text: res.error || "Gagal memperbarui profil." });
+      }
+    } catch (err: any) {
+      setMessage({ type: "error", text: err?.message || "Terjadi kesalahan server." });
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -97,6 +132,23 @@ export default function CompanyInformationForm() {
         </p>
       </div>
 
+      {message && (
+        <div
+          className={`p-3.5 rounded-[10px] text-[13px] font-medium flex items-center gap-2 ${
+            message.type === "success"
+              ? "bg-emerald-950/80 border border-emerald-500/30 text-emerald-300"
+              : "bg-red-950/80 border border-red-500/30 text-red-300"
+          }`}
+        >
+          {message.type === "success" ? (
+            <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+          ) : (
+            <AlertCircle size={16} className="text-red-400 shrink-0" />
+          )}
+          <span>{message.text}</span>
+        </div>
+      )}
+
       {/* Nama Perusahaan */}
       <Field label="Nama Perusahaan / Organisasi">
         <input
@@ -106,16 +158,17 @@ export default function CompanyInformationForm() {
           onFocus={() => setFocusedField("name")}
           onBlur={() => setFocusedField(null)}
           placeholder="Masukkan nama perusahaan..."
+          required
           style={inputStyle("name")}
         />
       </Field>
 
       {/* Email (read-only) */}
-      <Field label="Email Resmi">
+      <Field label="Email Resmi (Auth)">
         <div className="relative flex items-center">
           <input
             type="email"
-            value="admin@telkom.co.id"
+            value={initialData?.email || ""}
             readOnly
             style={inputStyle("email", true)}
           />
@@ -127,19 +180,6 @@ export default function CompanyInformationForm() {
             Terverifikasi
           </span>
         </div>
-      </Field>
-
-      {/* NPWP */}
-      <Field label="NPWP Perusahaan / Organisasi">
-        <input
-          type="text"
-          value={taxNumber}
-          onChange={e => setTaxNumber(e.target.value)}
-          onFocus={() => setFocusedField("npwp")}
-          onBlur={() => setFocusedField(null)}
-          placeholder="Masukkan NPWP..."
-          style={inputStyle("npwp")}
-        />
       </Field>
 
       {/* Jenis Organisasi */}
@@ -165,7 +205,7 @@ export default function CompanyInformationForm() {
           Kontak Penanggung Jawab
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-[14px]">
-          <Field label="Nama PIC">
+          <Field label="Nama PIC / Perwakilan">
             <input
               type="text"
               value={picName}
@@ -173,6 +213,7 @@ export default function CompanyInformationForm() {
               onFocus={() => setFocusedField("pic")}
               onBlur={() => setFocusedField(null)}
               placeholder="Masukkan nama penanggung jawab..."
+              required
               style={inputStyle("pic")}
             />
           </Field>
@@ -190,30 +231,30 @@ export default function CompanyInformationForm() {
         </div>
       </div>
 
-      {/* Description fields */}
+      {/* Description & Website fields */}
       <div className="flex flex-col gap-[14px]">
         <h3 className="text-white font-bold" style={{ fontSize: "18px" }}>
-          Deskripsi &amp; Alamat
+          Deskripsi &amp; Website
         </h3>
 
-        <Field label="Alamat Kantor">
-          <textarea
-            rows={4}
-            value={address}
-            onChange={e => setAddress(e.target.value)}
-            onFocus={() => setFocusedField("addr")}
+        <Field label="Website / Link Perusahaan">
+          <input
+            type="url"
+            value={website}
+            onChange={e => setWebsite(e.target.value)}
+            onFocus={() => setFocusedField("website")}
             onBlur={() => setFocusedField(null)}
-            placeholder="Masukkan alamat kantor lengkap..."
-            style={textareaStyle("addr")}
+            placeholder="https://perusahaan.co.id"
+            style={inputStyle("website")}
           />
         </Field>
 
         <Field label="Tentang / Profil Singkat">
           <textarea
             rows={5}
-            value={bio}
+            value={description}
             onChange={e => {
-              if (e.target.value.length <= BIO_LIMIT) setBio(e.target.value);
+              if (e.target.value.length <= BIO_LIMIT) setDescription(e.target.value);
             }}
             onFocus={() => setFocusedField("bio")}
             onBlur={() => setFocusedField(null)}
@@ -222,9 +263,9 @@ export default function CompanyInformationForm() {
           />
           <p
             className="text-[11px] text-right mt-0.5"
-            style={{ color: bio.length >= BIO_LIMIT - 30 ? "#E30000" : "#737373" }}
+            style={{ color: description.length >= BIO_LIMIT - 30 ? "#E30000" : "#737373" }}
           >
-            {bio.length} / {BIO_LIMIT}
+            {description.length} / {BIO_LIMIT}
           </p>
         </Field>
       </div>
@@ -237,7 +278,7 @@ export default function CompanyInformationForm() {
         <button
           type="submit"
           disabled={saving}
-          className="inline-flex items-center justify-center rounded-full text-white text-[14px] font-semibold bg-[#E30000] hover:bg-[#CC0000] active:bg-[#B30000] transition-colors disabled:opacity-60"
+          className="inline-flex items-center justify-center rounded-full text-white text-[14px] font-semibold bg-[#E30000] hover:bg-[#CC0000] active:bg-[#B30000] transition-colors disabled:opacity-60 cursor-pointer"
           style={{ height: "44px", padding: "0 20px" }}
         >
           {saving ? "Menyimpan..." : "Simpan Perubahan"}
