@@ -55,8 +55,8 @@ export default function Navbar({ onOpenLogin, onOpenRegister }: NavbarProps) {
           : "bg-white/70 border-b border-transparent backdrop-blur-md"
       }`}
     >
-      <div className="max-w-[1220px] mx-auto px-6">
-        <nav className="h-20 flex items-center justify-between">
+      <div className="max-w-[1220px] mx-auto px-4 sm:px-6">
+        <nav className="h-16 sm:h-20 flex items-center justify-between">
           {/* Brand Logo & Name */}
           <Link
             href="#hero"
@@ -126,7 +126,7 @@ export default function Navbar({ onOpenLogin, onOpenRegister }: NavbarProps) {
           </div>
 
           {/* Nav Actions */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             <button
               type="button"
               onClick={handleLogin}
@@ -142,9 +142,9 @@ export default function Navbar({ onOpenLogin, onOpenRegister }: NavbarProps) {
             <button
               type="button"
               onClick={handleRegister}
-              className="bg-[#E30000] hover:bg-[#bf0000] text-white px-5 py-2 rounded-full text-[13px] font-semibold tracking-tight shadow-[0_10px_24px_rgba(227,0,0,0.2)] hover:-translate-y-0.5 transition-all cursor-pointer"
+              className="h-8 sm:h-9 md:h-10 px-3 sm:px-4 md:px-5 rounded-full bg-[#E30000] hover:bg-[#CC0000] text-white font-semibold text-xs sm:text-sm whitespace-nowrap inline-flex items-center justify-center shrink-0 transition-all duration-200 shadow-sm cursor-pointer hover:-translate-y-0.5 active:scale-[0.98]"
             >
-              Daftar Sekarang
+              <span>Daftar<span className="hidden sm:inline"> Sekarang</span></span>
             </button>
 
             {/* Mobile Hamburger Button */}
@@ -152,7 +152,7 @@ export default function Navbar({ onOpenLogin, onOpenRegister }: NavbarProps) {
               type="button"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label={mobileOpen ? "Tutup menu" : "Buka menu"}
-              className={`md:hidden p-2 rounded-full border transition-colors ${
+              className={`md:hidden p-2 rounded-full border transition-colors cursor-pointer shrink-0 ${
                 isSeeker
                   ? "border-[#2b2e34] text-white hover:bg-[#1a1c22]"
                   : "border-[#e7e8eb] text-[#111318] hover:bg-gray-100"
