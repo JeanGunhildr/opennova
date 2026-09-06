@@ -162,6 +162,7 @@ export default function Section6Timeline({
             {stage.single ? (
               <input
                 type="date"
+                className="[&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                 name={stage.startName}
                 min={todayStr}
                 value={timeline[stage.startKey]}
@@ -181,6 +182,7 @@ export default function Section6Timeline({
               >
                 <input
                   type="date"
+                  className="[&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                   name={stage.startName}
                   min={todayStr}
                   value={timeline[stage.startKey]}
@@ -202,6 +204,7 @@ export default function Section6Timeline({
 
                 <input
                   type="date"
+                  className="[&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                   name={stage.endName ?? undefined}
                   min={todayStr}
                   value={
