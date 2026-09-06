@@ -187,7 +187,7 @@ Melalui model tersebut, Opennova tidak hanya menjadi wadah pencarian solusi, tet
   <img src="./screenshot/22-admin-users.png" alt="Admin - Users" width="800"/>
   <p><em>Manajemen Pengguna - Mengelola dan memantau pengguna yang terdaftar sebagai Seeker maupun Solver.</em></p>
 
-  <img src="./screenshot/23-admin-certification.png" alt="Admin - Certification" width="800"/>
+  <img src="./screenshot/23-admin-certifitcation.png" alt="Admin - Certification" width="800"/>
   <p><em>Manajemen Sertifikasi - Mengelola proses verifikasi dan penerbitan sertifikat bagi Solver yang memperoleh penghargaan.</em></p>
 
 </div>
