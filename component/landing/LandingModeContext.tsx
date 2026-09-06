@@ -20,7 +20,7 @@ interface LandingModeContextValue {
 const LandingModeContext = createContext<LandingModeContextValue | null>(null);
 
 export function LandingModeProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState] = useState<LandingMode>("solver");
+  const [mode, setModeState] = useState<LandingMode>("seeker");
 
   const setMode = useCallback((newMode: LandingMode) => {
     setModeState(newMode);
@@ -43,8 +43,8 @@ export function useLandingMode(): LandingModeContextValue {
   const ctx = useContext(LandingModeContext);
   if (!ctx) {
     return {
-      mode: "solver",
-      isSeeker: false,
+      mode: "seeker",
+      isSeeker: true,
       setMode: () => {},
       toggleMode: () => {},
     };
@@ -62,7 +62,7 @@ export function LandingShell({ children }: { children: ReactNode }) {
   return (
     <div
       className={`min-h-screen flex flex-col transition-colors duration-300 ${
-        isSeeker ? "bg-[#171717] text-white" : "bg-white text-gray-900"
+        isSeeker ? "bg-[#090a0c] text-[#f7f7f8]" : "bg-white text-[#111318]"
       }`}
     >
       {children}

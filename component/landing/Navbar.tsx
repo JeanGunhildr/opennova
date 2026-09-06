@@ -1,176 +1,227 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Menu, X } from "lucide-react";
-import { OpenNovaLogo } from "@/component/landing/Logo";
+import { Menu, X } from "lucide-react";
 import { useAuthModal } from "@/component/auth/AuthModalContext";
 import { useLandingMode } from "@/component/landing/LandingModeContext";
 
-const seekerNavLinks = [
-  { label: "Panduan",          href: "#panduan" },
-  { label: "Kategori Inovasi", href: "#kategori" },
-  { label: "Cerita Pengguna",  href: "#testimoni" },
-  { label: "Hubungi Kami",     href: "#kontak" },
-];
+interface NavbarProps {
+  onOpenLogin?: () => void;
+  onOpenRegister?: () => void;
+}
 
-const solverNavLinks = [
-  { label: "Jelajah Challenge", href: "#challenge" },
-  { label: "Kategori",          href: "#kolaborasi" },
-  { label: "Tentang Kami",      href: "#insentif" },
-  { label: "Kontak",            href: "#kontak" },
-];
-
-// ─────────────────────────────────────────────────────────
-export default function Navbar() {
+export default function Navbar({ onOpenLogin, onOpenRegister }: NavbarProps) {
+  const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { isSeeker, mode, setMode } = useLandingMode();
   const { open: openAuthModal } = useAuthModal();
-  const { isSeeker } = useLandingMode();
 
-  const activeLinks = isSeeker ? seekerNavLinks : solverNavLinks;
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const handleLogin = () => {
+    if (onOpenLogin) {
+      onOpenLogin();
+    } else {
+      openAuthModal("LOGIN");
+    }
+  };
+
+  const handleRegister = () => {
+    if (onOpenRegister) {
+      onOpenRegister();
+    } else {
+      openAuthModal("REGISTER_1");
+    }
+  };
 
   return (
-    <>
-      {/* ── Floating pill navigation ───────────────────── */}
-      <nav
-        aria-label="Navigasi utama"
-        className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-4xl"
-      >
-        <div
-          className={`flex items-center justify-between h-14 px-3 rounded-full backdrop-blur-md transition-colors duration-300 ${
-            isSeeker
-              ? "bg-[#191919]/95 border border-[#2E2E2E] shadow-[0_7px_25px_rgba(0,0,0,0.5)]"
-              : "bg-white/82 border border-gray-200/70 shadow-[0_7px_25px_rgba(20,20,20,0.10)]"
-          }`}
-        >
-
-          {/* Logo */}
+    <header
+      id="navbar"
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        isSeeker
+          ? isScrolled
+            ? "bg-[#090a0c]/85 border-b border-white/[0.08] backdrop-blur-xl shadow-lg"
+            : "bg-[#090a0c]/60 border-b border-transparent backdrop-blur-md"
+          : isScrolled
+          ? "bg-white/90 border-b border-gray-200/80 backdrop-blur-xl shadow-sm"
+          : "bg-white/70 border-b border-transparent backdrop-blur-md"
+      }`}
+    >
+      <div className="max-w-[1220px] mx-auto px-4 sm:px-6">
+        <nav className="h-16 sm:h-20 flex items-center justify-between">
+          {/* Brand Logo & Name */}
           <Link
-            href="/"
-            aria-label="OpenNova beranda"
-            className="flex-shrink-0 rounded-full focus-visible:ring-2 focus-visible:ring-[#E30000] focus-visible:ring-offset-2"
+            href="#hero"
+            className="flex items-center gap-2.5 font-semibold text-[18px] tracking-[-0.035em] group"
           >
-            <OpenNovaLogo theme={isSeeker ? "dark" : "light"} />
+            <Image
+              src="/icon.svg"
+              alt="Opennova"
+              width={28}
+              height={28}
+              priority
+              className="object-contain"
+            />
+            <span
+              className={`transition-colors duration-300 ${
+                isSeeker ? "text-white" : "text-[#111318]"
+              }`}
+            >
+              Opennova
+            </span>
           </Link>
 
-          {/* Desktop nav links */}
-          <ul className="hidden md:flex items-center gap-0.5" role="list">
-            {activeLinks.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className={`block px-3 py-2 text-sm rounded-full transition-colors duration-150 ${
-                    isSeeker
-                      ? "text-[#A4A4A4] hover:text-white hover:bg-[#262626]"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/80"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-
-          {/* Desktop CTA */}
-          {isSeeker ? (
-            <button
-              type="button"
-              id="nav-cta-seeker"
-              onClick={() => openAuthModal("LOGIN")}
-              className="hidden md:inline-flex items-center gap-1.5 rounded-full bg-[#E30000] hover:bg-[#CC0000] text-white text-xs font-semibold px-4 h-[34px] transition-colors active:scale-[0.97] cursor-pointer shadow-md"
+          {/* Desktop Nav Links */}
+          <div className="hidden md:flex items-center gap-7">
+            <a
+              href="#inovasi"
+              className={`text-[13px] font-medium transition-colors ${
+                isSeeker
+                  ? "text-[#cfd1d5] hover:text-white"
+                  : "text-[#30343a] hover:text-[#E30000]"
+              }`}
             >
-              Masuk
-              <ArrowRight size={13} />
-            </button>
-          ) : (
-            <button
-              type="button"
-              id="nav-cta-daftar"
-              onClick={() => openAuthModal("LOGIN")}
-              className="hidden md:flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-full active:scale-[0.97] transition-all duration-150 cursor-pointer bg-gray-900 text-white hover:bg-gray-800"
+              Inovasi Terbaru
+            </a>
+            <a
+              href="#kategori"
+              className={`text-[13px] font-medium transition-colors ${
+                isSeeker
+                  ? "text-[#cfd1d5] hover:text-white"
+                  : "text-[#30343a] hover:text-[#E30000]"
+              }`}
             >
-              Masuk
-              <ArrowRight size={14} />
-            </button>
-          )}
-
-          {/* Mobile toggle */}
-          <button
-            id="nav-mobile-toggle"
-            aria-label={mobileOpen ? "Tutup menu" : "Buka menu"}
-            aria-expanded={mobileOpen}
-            aria-controls="mobile-menu"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className={`md:hidden flex items-center justify-center w-9 h-9 rounded-full transition-colors ${
-              isSeeker
-                ? "text-gray-200 hover:bg-[#262626]"
-                : "text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            {mobileOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
-        </div>
-      </nav>
-
-      {/* ── Mobile drawer ──────────────────────────────── */}
-      {mobileOpen && (
-        <div
-          id="mobile-menu"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Menu navigasi"
-          className="fixed inset-0 z-40 md:hidden"
-        >
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setMobileOpen(false)}
-            aria-hidden="true"
-          />
-
-          {/* Drawer panel */}
-          <div
-            className={`absolute top-[72px] left-4 right-4 rounded-2xl p-3 border shadow-[0_10px_35px_rgba(20,20,20,0.25)] transition-colors duration-300 ${
-              isSeeker
-                ? "bg-[#191919] border-[#2E2E2E] text-white"
-                : "bg-white border-gray-200 text-gray-900"
-            }`}
-          >
-            <ul className="space-y-0.5" role="list">
-              {activeLinks.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={`block px-4 py-3 text-[15px] rounded-xl transition-colors ${
-                      isSeeker
-                        ? "text-[#A4A4A4] hover:text-white hover:bg-[#262626]"
-                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-
-            <div className={`mt-3 pt-3 border-t ${isSeeker ? "border-[#2E2E2E]" : "border-gray-100"}`}>
-              <button
-                type="button"
-                onClick={() => { setMobileOpen(false); openAuthModal("REGISTER_1"); }}
-                className={`flex w-full items-center justify-center gap-2 font-semibold text-sm py-3 rounded-full transition-colors cursor-pointer ${
+              Kategori
+            </a>
+            {!isSeeker && (
+              <a
+                href="#inovasi"
+                className={`text-[13px] font-medium transition-colors ${
                   isSeeker
-                    ? "bg-[#E30000] hover:bg-[#CC0000] text-white shadow-md"
-                    : "bg-gray-900 text-white hover:bg-gray-800"
+                    ? "text-[#cfd1d5] hover:text-white"
+                    : "text-[#30343a] hover:text-[#E30000]"
                 }`}
               >
-                {isSeeker ? "Daftar sebagai Seeker" : "Daftar sekarang"}
-                <ArrowRight size={14} />
+                Jelajahi
+              </a>
+            )}
+            <a
+              href="#cerita"
+              className={`text-[13px] font-medium transition-colors ${
+                isSeeker
+                  ? "text-[#cfd1d5] hover:text-white"
+                  : "text-[#30343a] hover:text-[#E30000]"
+              }`}
+            >
+              Cerita Pengguna
+            </a>
+          </div>
+
+          {/* Nav Actions */}
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            <button
+              type="button"
+              onClick={handleLogin}
+              className={`hidden sm:inline-flex px-4 py-2 rounded-full text-[13px] font-semibold border transition-all cursor-pointer hover:-translate-y-0.5 ${
+                isSeeker
+                  ? "bg-[#191b20] border-[#292c32] text-[#f4f4f5] hover:border-[#50545d]"
+                  : "bg-white border-[#dfe1e5] text-[#111318] hover:border-[#aeb2b8]"
+              }`}
+            >
+              Masuk
+            </button>
+
+            <button
+              type="button"
+              onClick={handleRegister}
+              className="h-8 sm:h-9 md:h-10 px-3 sm:px-4 md:px-5 rounded-full bg-[#E30000] hover:bg-[#CC0000] text-white font-semibold text-xs sm:text-sm whitespace-nowrap inline-flex items-center justify-center shrink-0 transition-all duration-200 shadow-sm cursor-pointer hover:-translate-y-0.5 active:scale-[0.98]"
+            >
+              <span>Daftar<span className="hidden sm:inline"> Sekarang</span></span>
+            </button>
+
+            {/* Mobile Hamburger Button */}
+            <button
+              type="button"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label={mobileOpen ? "Tutup menu" : "Buka menu"}
+              className={`md:hidden p-2 rounded-full border transition-colors cursor-pointer shrink-0 ${
+                isSeeker
+                  ? "border-[#2b2e34] text-white hover:bg-[#1a1c22]"
+                  : "border-[#e7e8eb] text-[#111318] hover:bg-gray-100"
+              }`}
+            >
+              {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
+          </div>
+        </nav>
+
+        {/* Mobile Dropdown Menu */}
+        {mobileOpen && (
+          <div
+            className={`md:hidden mt-2 p-5 rounded-2xl border shadow-xl flex flex-col gap-4 animate-in fade-in duration-200 ${
+              isSeeker
+                ? "bg-[#090a0c] border-[#2b2e34] text-white"
+                : "bg-white border-[#e7e8eb] text-[#111318]"
+            }`}
+          >
+            <a
+              href="#inovasi"
+              onClick={() => setMobileOpen(false)}
+              className="text-[14px] font-medium py-1"
+            >
+              Inovasi Terbaru
+            </a>
+            <a
+              href="#kategori"
+              onClick={() => setMobileOpen(false)}
+              className="text-[14px] font-medium py-1"
+            >
+              Kategori
+            </a>
+            {!isSeeker && (
+              <a
+                href="#inovasi"
+                onClick={() => setMobileOpen(false)}
+                className="text-[14px] font-medium py-1"
+              >
+                Jelajahi
+              </a>
+            )}
+            <a
+              href="#cerita"
+              onClick={() => setMobileOpen(false)}
+              className="text-[14px] font-medium py-1"
+            >
+              Cerita Pengguna
+            </a>
+
+            <div className="pt-3 border-t border-current/10 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileOpen(false);
+                  handleLogin();
+                }}
+                className={`w-full py-2.5 rounded-full text-[13px] font-semibold border ${
+                  isSeeker
+                    ? "bg-[#191b20] border-[#292c32] text-white"
+                    : "bg-white border-[#dfe1e5] text-[#111318]"
+                }`}
+              >
+                Masuk
               </button>
             </div>
           </div>
-        </div>
-      )}
-    </>
+        )}
+      </div>
+    </header>
   );
 }
