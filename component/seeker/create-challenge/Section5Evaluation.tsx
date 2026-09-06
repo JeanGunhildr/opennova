@@ -265,6 +265,7 @@ function CriteriaStage({
             min={0}
             max={100}
             onChange={(e) => handleWeightChange(e.target.value)}
+            onWheel={(e) => e.currentTarget.blur()}
             style={{
               height: "34px",
               background: "#F7F7F7",

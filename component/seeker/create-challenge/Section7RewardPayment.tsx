@@ -184,6 +184,7 @@ export default function Section7RewardPayment({
                 e.currentTarget.closest("div")!.style.border =
                   "1px solid #373737";
               }}
+              onWheel={(e) => e.currentTarget.blur()}
               placeholder="0"
               style={{
                 flex: 1,

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { FileText } from "lucide-react";
@@ -7,22 +7,25 @@ import type { CopyrightOption } from "./CopyrightOptionCard";
 
 const OPTIONS: CopyrightOption[] = [
   {
-    id: "full-transfer",
+    id: "transfer-penuh",
     title: "Transfer Penuh",
     description: "Hak cipta atas solusi pemenang dialihkan sepenuhnya kepada Seeker setelah hadiah dicairkan.",
-    downloadEnabled: true,
+    downloadUrl: "/copyright-templates/Kesepakatan_Hak_Cipta_Transfer_Penuh.docx",
+    fileName: "Kesepakatan_Hak_Cipta_Transfer_Penuh.docx",
   },
   {
-    id: "non-exclusive-license",
+    id: "lisensi-non-eksklusif",
     title: "Lisensi Non-Eksklusif",
     description: "Seeker memperoleh izin pakai, Solver tetap memegang hak cipta utama atas solusinya.",
-    downloadEnabled: false,
+    downloadUrl: "/copyright-templates/Kesepakatan_Hak_Cipta_Lisensi_Non_Eksklusif.docx",
+    fileName: "Kesepakatan_Hak_Cipta_Lisensi_Non_Eksklusif.docx",
   },
   {
-    id: "continued-collaboration",
+    id: "kolaborasi-lanjutan",
     title: "Kolaborasi Lanjutan",
     description: "Tidak ada pengalihan hak cipta otomatis dan dinegosiasikan langsung dengan Solver pemenang.",
-    downloadEnabled: false,
+    downloadUrl: "/copyright-templates/Kesepakatan_Hak_Cipta_Kolaborasi_Lanjutan.docx",
+    fileName: "Kesepakatan_Hak_Cipta_Kolaborasi_Lanjutan.docx",
   },
 ];
 
@@ -32,7 +35,7 @@ const INFO_BULLETS = [
 ];
 
 export default function CopyrightAgreementPanel() {
-  const [selected, setSelected] = useState("full-transfer");
+  const [selected, setSelected] = useState("transfer-penuh");
 
   return (
     <div className="mt-7">
