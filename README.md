@@ -45,13 +45,21 @@
 
 ### Latar Belakang
 
-Di tengah persaingan bisnis yang semakin banyak, perusahaan dituntut untuk terus berinovasi dan menyelesaikan permasalahan secara cepat dan efektif. Namun, proses inovasi masih banyak bergantung pada tim internal atau pihak eksternal seperti konsultan, sehingga akses terhadap ide, talenta, dan solusi dari luar perusahaan belum optimal. Di sisi lain, Indonesia memiliki banyak talenta potensial, mulai dari mahasiswa, peneliti, akademisi, komunitas, hingga startup yang memiliki kemampuan dan ide inovatif. Namun, mereka belum memiliki cukup akses untuk mengaplikasikan kemampuan tersebut pada permasalahan nyata industri. Akibatnya, terdapat kesenjangan antara perusahaan yang membutuhkan solusi dan talenta yang memiliki potensi untuk menciptakannya.
+Di tengah persaingan bisnis yang semakin ketat, perusahaan dituntut untuk terus berinovasi dan menyelesaikan permasalahan secara cepat dan efektif. Namun, proses inovasi masih banyak bergantung pada tim internal atau pihak eksternal seperti konsultan, sehingga akses terhadap ide, talenta, dan solusi dari luar perusahaan belum optimal.
 
-Kondisi ini juga menjadi tantangan bagi talenta muda dalam memasuki dunia kerja. Selain pendidikan, pengalaman dan kontribusi nyata menjadi nilai tambah yang dapat menunjukkan kemampuan seseorang. Kesempatan untuk mengerjakan permasalahan nyata perusahaan dapat menjadi pengalaman sekaligus portfolio yang memperkuat CV dan daya saing di dunia profesional. Data Global Innovation Index 2025 menunjukkan Indonesia berada di peringkat 55 dari 139 negara, namun masih berada di peringkat 92 untuk Human Capital & Research dan 117 untuk kolaborasi riset antara institusi publik dan industri. Hal ini menunjukkan bahwa potensi inovasi Indonesia masih perlu didukung oleh ekosistem yang mampu menghubungkan talenta, pengetahuan, dan kebutuhan industri.
+Di sisi lain, Indonesia memiliki banyak talenta potensial, mulai dari mahasiswa, peneliti, akademisi, komunitas, hingga startup yang memiliki kemampuan dan ide inovatif. Namun, mereka belum memiliki cukup akses untuk mengaplikasikan kemampuan tersebut pada permasalahan nyata industri. Akibatnya, terdapat kesenjangan antara perusahaan yang membutuhkan solusi dan talenta yang memiliki potensi untuk menciptakannya.
+
+Kondisi ini juga menjadi tantangan bagi talenta muda dalam memasuki dunia kerja. Selain pendidikan, pengalaman dan kontribusi nyata menjadi nilai tambah yang dapat menunjukkan kemampuan seseorang. Kesempatan untuk mengerjakan permasalahan nyata perusahaan dapat menjadi pengalaman sekaligus portfolio yang memperkuat CV dan daya saing di dunia profesional.
+
+Data Global Innovation Index 2025 menunjukkan Indonesia berada di peringkat 55 dari 139 negara, namun masih berada di peringkat 92 untuk Human Capital & Research dan 117 untuk kolaborasi riset antara institusi publik dan industri. Hal ini menunjukkan bahwa potensi inovasi Indonesia masih perlu didukung oleh ekosistem yang mampu menghubungkan talenta, riset, teknologi, dan kebutuhan industri. Upaya tersebut sejalan dengan SDG 9: Industry, Innovation and Infrastructure, khususnya dalam mendorong riset, kapabilitas teknologi, dan inovasi.
 
 ### Solusi yang Ditawarkan
 
-Opennova hadir untuk menjembatani kebutuhan inovasi perusahaan dengan potensi talenta Indonesia. Opennova adalah platform Open Innovation & Crowdsourcing yang mempertemukan Seeker (perusahaan/organisasi yang memiliki tantangan) dengan Solver (individu atau tim yang menawarkan solusi). Seeker dapat mempublikasikan permasalahan sebagai Challenge, kemudian Solver dari berbagai latar belakang dapat mengajukan solusi, yang selanjutnya dievaluasi untuk menentukan pemenang atau peluang kolaborasi. Pendekatan ini menciptakan ekosistem win-win solution, dimana Seeker memperoleh akses terhadap solusi yang lebih variatif, efisien, dan kompetitif, sementara Solver mendapatkan reward finansial, sertifikat resmi, serta kesempatan memperkuat portofolio.
+Opennova hadir untuk menjembatani kebutuhan inovasi perusahaan dengan potensi talenta Indonesia sekaligus mendukung pencapaian SDG 9 melalui ekosistem Open Innovation & Crowdsourcing. Opennova mempertemukan Seeker (perusahaan/organisasi yang memiliki tantangan) dengan Solver (individu atau tim yang menawarkan solusi).
+
+Melalui Opennova, Seeker dapat mempublikasikan permasalahan atau kebutuhan inovasinya sebagai Challenge, kemudian Solver dari berbagai latar belakang dapat mengembangkan dan mengajukan solusi. Solusi tersebut selanjutnya dapat dievaluasi oleh Seeker untuk menentukan pemenang atau membuka peluang kolaborasi lebih lanjut. Dengan demikian, perusahaan memperoleh akses terhadap perspektif dan solusi yang lebih beragam, sementara Solver mendapatkan kesempatan untuk menerapkan kemampuan pada permasalahan nyata, memperoleh reward dan sertifikat, serta membangun portfolio dari kontribusi nyata.
+
+Melalui model tersebut, Opennova tidak hanya menjadi wadah pencarian solusi, tetapi membangun ekosistem kolaborasi antara industri dan talenta Indonesia. Hal ini secara langsung mendukung SDG 9 dengan mendorong keterhubungan antara kebutuhan industri, riset, teknologi, dan inovasi sehingga potensi inovasi dapat lebih mudah diterapkan menjadi solusi nyata.
 
 ### Tujuan Proyek
 
@@ -176,14 +184,16 @@ TypeScript   	: TypeScript v5
 
 ### System Architecture
 
-```
-[Tambahkan diagram arsitektur sistem - bisa menggunakan Mermaid atau gambar]
+<div align="center">
+  <img src="[URL_SCREENSHOT_1]" alt="system_architecture" width="800"/>
+</div>
 ```
 
 ### Database Schema
 
-```
-[Tambahkan diagram ERD atau schema database]
+<div align="center">
+  <img src="[URL_SCREENSHOT_1]" alt="database_schema" width="800"/>
+</div>
 ```
 
 ### Folder Structure
