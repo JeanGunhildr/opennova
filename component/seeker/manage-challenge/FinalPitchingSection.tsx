@@ -20,7 +20,7 @@ function formatDateRange(timelines: ManageChallengeData["timelines"], title: str
 function buildSubmissionRowData(entry: ManageChallengeEntry, criteriaIds: string[]): SubmissionRowData {
   const initials = entry.solverName
     .split(" ")
-    .map((w) => w[0])
+    .map((w: string) => w[0])
     .slice(0, 2)
     .join("")
     .toUpperCase() || "??";

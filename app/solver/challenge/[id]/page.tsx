@@ -42,13 +42,18 @@ export default async function ChallengeDetailPage({
 
   let isFullyJudged = false;
 
+  let entryStatus = "registered";
+
+  let isWinner = false;
+
   const supabase = await createClient();
 
   // ── Fetch Challenge detail from Supabase DB ───────────────
 
   const { data: dbCh, error: dbError } = await supabase
     .from("challenges")
-    .select(`
+    .select(
+      `
       id,
       name,
       description,
@@ -97,7 +102,8 @@ export default async function ChallengeDetailPage({
         end_date
       )
 
-    `)
+    `,
+    )
     .eq("id", id)
     .maybeSingle();
 
@@ -120,8 +126,7 @@ export default async function ChallengeDetailPage({
     ? dbCh.seeker_profiles[0]
     : (dbCh.seeker_profiles as any);
 
-  const companyName =
-    seekerObj?.company_name || "Penyelenggara Challenge";
+  const companyName = seekerObj?.company_name || "Penyelenggara Challenge";
 
   const initials =
     companyName
@@ -155,15 +160,10 @@ export default async function ChallengeDetailPage({
   if (deadlineObj && deadlineObj > now) {
     const diffMs = deadlineObj.getTime() - now.getTime();
 
-    const diffDays = Math.ceil(
-      diffMs / (1000 * 60 * 60 * 24)
-    );
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
     heroStatus = {
-      label:
-        diffDays <= 7
-          ? `${diffDays} hari lagi`
-          : formattedDeadline,
+      label: diffDays <= 7 ? `${diffDays} hari lagi` : formattedDeadline,
       style: "deadline",
     };
   } else if (
@@ -190,21 +190,16 @@ export default async function ChallengeDetailPage({
 
   const timelines = dbCh.challenge_timelines || [];
 
-const {
-  data: participantCountData,
-  error: participantCountError,
-} = await supabase.rpc("get_challenge_participant_count", {
-  _challenge_id: id,
-});
+  const { data: participantCountData, error: participantCountError } =
+    await supabase.rpc("get_challenge_participant_count", {
+      _challenge_id: id,
+    });
 
-const participantCount = Number(participantCountData) || 0;
+  const participantCount = Number(participantCountData) || 0;
 
-if (participantCountError) {
-  console.error(
-    "Error fetching participant count:",
-    participantCountError
-  );
-}
+  if (participantCountError) {
+    console.error("Error fetching participant count:", participantCountError);
+  }
 
   // ── Fetch User Auth & participation state ────────────────
 
@@ -219,21 +214,20 @@ if (participantCountError) {
       const { data: myCaptainTeamsData, error: captainTeamsError } =
         await supabase
           .from("teams")
-          .select(`
+          .select(
+            `
             id,
             name,
             team_members (
               id
             )
-          `)
+          `,
+          )
           .eq("captain_id", user.id)
           .eq("is_active", true);
 
       if (captainTeamsError) {
-        console.error(
-          "Error fetching captain teams:",
-          captainTeamsError
-        );
+        console.error("Error fetching captain teams:", captainTeamsError);
       }
 
       if (myCaptainTeamsData) {
@@ -248,54 +242,47 @@ if (participantCountError) {
 
       // ── 2. Fetch individual challenge entry ──────────────
 
-      const { data: indEntry, error: indEntryError } =
-        await supabase
-          .from("challenge_entries")
-          .select(`
+      const { data: indEntry, error: indEntryError } = await supabase
+        .from("challenge_entries")
+        .select(
+          `
             id,
             status,
+            is_winner,
             participation_type,
 
             submissions (
               drive_url
             )
-          `)
-          .eq("challenge_id", id)
-          .eq("solver_id", user.id)
-          .eq("participation_type", "individual")
-          .maybeSingle();
+          `,
+        )
+        .eq("challenge_id", id)
+        .eq("solver_id", user.id)
+        .eq("participation_type", "individual")
+        .maybeSingle();
 
       if (indEntryError) {
-        console.error(
-          "Error fetching individual entry:",
-          indEntryError
-        );
+        console.error("Error fetching individual entry:", indEntryError);
       }
 
-      if (indEntry) {
-        userParticipationState =
-          "ACTIVE_JOINED_INDIVIDUAL";
+      let myEntryMembership: any = null;
 
-        const subDriveUrl = Array.isArray(
-          indEntry.submissions
-        )
+      if (indEntry) {
+        userParticipationState = "ACTIVE_JOINED_INDIVIDUAL";
+
+        const subDriveUrl = Array.isArray(indEntry.submissions)
           ? indEntry.submissions[0]?.drive_url
           : (indEntry.submissions as any)?.drive_url;
 
         existingSubmissionUrl = subDriveUrl || "";
       } else {
         // ── 3. Fetch team registration from SNAPSHOT ───────
-        //
-        // Jangan lagi menggunakan team_members untuk menentukan
-        // apakah user terdaftar di challenge.
-        //
-        // team_members = komposisi tim saat ini
-        // challenge_entry_members = snapshot peserta challenge
 
-        const { data: myEntryMembership, error: membershipError } =
+        const { data: teamMembershipData, error: membershipError } =
           await supabase
             .from("challenge_entry_members")
-            .select(`
+            .select(
+              `
               entry_id,
               role_snapshot,
 
@@ -303,6 +290,7 @@ if (participantCountError) {
                 id,
                 challenge_id,
                 status,
+                is_winner,
                 participation_type,
                 team_id,
                 team_name_snapshot,
@@ -311,188 +299,128 @@ if (participantCountError) {
                   drive_url
                 )
               )
-            `)
+            `,
+            )
             .eq("user_id", user.id)
             .eq("challenge_entries.challenge_id", id)
             .eq("challenge_entries.participation_type", "team")
             .maybeSingle();
 
+        myEntryMembership = teamMembershipData;
+
         if (membershipError) {
           console.error(
             "Error fetching challenge entry membership:",
-            membershipError
+            membershipError,
           );
         }
 
         if (myEntryMembership) {
-          const teamEntry = Array.isArray(
-            myEntryMembership.challenge_entries
-          )
+          const teamEntry = Array.isArray(myEntryMembership.challenge_entries)
             ? myEntryMembership.challenge_entries[0]
             : (myEntryMembership.challenge_entries as any);
 
           if (teamEntry) {
-            userTeamName =
-              teamEntry.team_name_snapshot || "Tim Anda";
+            userTeamName = teamEntry.team_name_snapshot || "Tim Anda";
 
-            const subDriveUrl = Array.isArray(
-              teamEntry.submissions
-            )
+            const subDriveUrl = Array.isArray(teamEntry.submissions)
               ? teamEntry.submissions[0]?.drive_url
               : (teamEntry.submissions as any)?.drive_url;
 
             existingSubmissionUrl = subDriveUrl || "";
 
-            // role_snapshot berasal dari snapshot saat
-            // pendaftaran challenge.
-            //
-            // captain → boleh submit
-            // member  → hanya terdaftar sebagai anggota
-
-            if (
-              myEntryMembership.role_snapshot === "captain"
-            ) {
-              userParticipationState =
-                "ACTIVE_JOINED_TEAM_LEADER";
+            if (myEntryMembership.role_snapshot === "captain") {
+              userParticipationState = "ACTIVE_JOINED_TEAM_LEADER";
             } else {
-              userParticipationState =
-                "ACTIVE_JOINED_TEAM_MEMBER";
+              userParticipationState = "ACTIVE_JOINED_TEAM_MEMBER";
             }
           }
         }
       }
 
-      // ── 4. Tentukan entry ID untuk mengambil skor ─────────
+      // ── 4. Tentukan entry ID & status untuk mengambil skor ───
 
       let userEntryId: string | null = null;
+      let entryStatus = "registered";
+      let isWinner = false;
 
-      if (
-        userParticipationState ===
-        "ACTIVE_JOINED_INDIVIDUAL"
-      ) {
-        const { data: entryRow } = await supabase
-          .from("challenge_entries")
-          .select("id")
-          .eq("challenge_id", id)
-          .eq("solver_id", user.id)
-          .eq("participation_type", "individual")
-          .maybeSingle();
-
-        userEntryId = entryRow?.id ?? null;
+      if (userParticipationState === "ACTIVE_JOINED_INDIVIDUAL" && indEntry) {
+        userEntryId = indEntry.id;
+        entryStatus = indEntry.status || "registered";
+        isWinner = Boolean(indEntry.is_winner);
       } else if (
-        userParticipationState ===
-          "ACTIVE_JOINED_TEAM_LEADER" ||
-        userParticipationState ===
-          "ACTIVE_JOINED_TEAM_MEMBER"
+        (userParticipationState === "ACTIVE_JOINED_TEAM_LEADER" ||
+          userParticipationState === "ACTIVE_JOINED_TEAM_MEMBER") &&
+        myEntryMembership
       ) {
-        // Cari entry melalui snapshot.
-        //
-        // Ini lebih aman daripada melihat team_members karena
-        // komposisi team_members dapat berubah setelah challenge
-        // selesai / setelah team di-unlock.
+        const teamEntry = Array.isArray(myEntryMembership.challenge_entries)
+          ? myEntryMembership.challenge_entries[0]
+          : (myEntryMembership.challenge_entries as any);
 
-        const { data: membershipRow } = await supabase
-          .from("challenge_entry_members")
-          .select(`
-            entry_id,
-            challenge_entries!inner (
-              id,
-              challenge_id,
-              participation_type
-            )
-          `)
-          .eq("user_id", user.id)
-          .eq("challenge_entries.challenge_id", id)
-          .eq("challenge_entries.participation_type", "team")
-          .maybeSingle();
-
-        userEntryId = membershipRow?.entry_id ?? null;
+        if (teamEntry) {
+          userEntryId = teamEntry.id;
+          entryStatus = teamEntry.status || "registered";
+          isWinner = Boolean(teamEntry.is_winner);
+        }
       }
 
-      // ── 5. Fetch skor ────────────────────────────────────
+      // ── 5. Fetch skor & gabungkan dengan master criteria ─────
 
-      if (userEntryId && existingSubmissionUrl) {
-        const { data: scores, error: scoresError } =
-          await supabase
-            .from("criterion_scores")
-            .select(`
-              id,
-              criterion_id,
-              score,
+      const allCriteria: any[] = Array.isArray(dbCh.judging_criteria)
+        ? dbCh.judging_criteria
+        : [];
 
-              judging_criteria (
-                id,
-                name,
-                stage
-              )
-            `)
-            .eq("entry_id", userEntryId);
+      let scoreMap = new Map<string, number>();
+
+      if (userEntryId) {
+        const { data: scores, error: scoresError } = await supabase
+          .from("criterion_scores")
+          .select("criterion_id, score")
+          .eq("entry_id", userEntryId);
 
         if (scoresError) {
-          console.error(
-            "Error fetching criterion scores:",
-            scoresError
-          );
+          console.error("Error fetching criterion scores:", scoresError);
         }
 
         if (scores && scores.length > 0) {
-          scoreCriteria = scores.map((s: any) => {
-            const crit = Array.isArray(
-              s.judging_criteria
-            )
-              ? s.judging_criteria[0]
-              : s.judging_criteria;
-
-            return {
-              id: s.criterion_id,
-              name: crit?.name || "Kriteria",
-              stage: (crit?.stage ||
-                "expert_judging") as
-                | "expert_judging"
-                | "final_pitch",
-              score: Number(s.score),
-              maxScore: 100,
-            };
-          });
-
-          const totalCriteriaCount = Array.isArray(
-            dbCh.judging_criteria
-          )
-            ? dbCh.judging_criteria.length
-            : 0;
-
-          isFullyJudged =
-            totalCriteriaCount > 0 &&
-            scoreCriteria.length >= totalCriteriaCount;
-        } else if (existingSubmissionUrl) {
-          // Sudah submit tapi belum dinilai.
-
-          const allCriteria: any[] = Array.isArray(
-            dbCh.judging_criteria
-          )
-            ? dbCh.judging_criteria
-            : [];
-
-          scoreCriteria = allCriteria.map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            stage: (c.stage ||
-              "expert_judging") as
-              | "expert_judging"
-              | "final_pitch",
-            score: null,
-            maxScore: 100,
-          }));
-
-          isFullyJudged = false;
+          for (const s of scores) {
+            scoreMap.set(s.criterion_id, Number(s.score));
+          }
         }
       }
+
+      // Mapping ALL criteria: criteria with score -> score: number, maxScore: 100
+      // criteria without score -> score: null, maxScore: 0 (displays 0 / 0 in UI)
+      scoreCriteria = allCriteria.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        stage: (c.stage || "expert_judging") as
+          | "expert_judging"
+          | "final_pitch",
+        score: scoreMap.has(c.id) ? scoreMap.get(c.id)! : null,
+        maxScore: scoreMap.has(c.id) ? 100 : 0,
+      }));
+
+      // isFullyJudged: true ONLY if all criteria have a score in scoreMap
+      isFullyJudged =
+        allCriteria.length > 0 &&
+        allCriteria.every((c: any) => scoreMap.has(c.id));
+
+      console.log("[SOLVER SCORE PANEL]", {
+        entryId: userEntryId,
+        criteria: scoreCriteria,
+        isFullyJudged,
+      });
+
+      console.log("[SOLVER RESULT STATUS]", {
+        entryId: userEntryId,
+        entryStatus,
+        isWinner,
+        challengeStatus: dbCh.status,
+      });
     }
   } catch (err) {
-    console.error(
-      "Error fetching user participation state:",
-      err
-    );
+    console.error("Error fetching user participation state:", err);
   }
 
   // ── Discussions ───────────────────────────────────────────
@@ -509,18 +437,13 @@ if (participantCountError) {
       company={companyName}
       companyInitials={initials}
       companyAbout={seekerObj?.company_description || ""}
-      companyIndustry={
-        seekerObj?.company_type || categoryName
-      }
+      companyIndustry={seekerObj?.company_type || categoryName}
       companyWebsite={seekerObj?.website || ""}
       reward={formattedReward}
       deadline={formattedDeadline}
       participantCount={participantCount}
       status={dbCh.status || "published"}
-      description={
-        dbCh.description ||
-        "Deskripsi tantangan belum tersedia."
-      }
+      description={dbCh.description || "Deskripsi tantangan belum tersedia."}
       heroStatus={heroStatus}
       thumbnailPath={dbCh.thumbnail_path}
       objectives={objectives}
@@ -530,26 +453,18 @@ if (participantCountError) {
       discussions={discussions}
       expertWeight={Number(dbCh.expert_weight) || 50}
       pitchWeight={Number(dbCh.pitch_weight) || 50}
-      verified={Boolean(
-        seekerObj?.legal_document_path
-      )}
-      jenisPerusahaan={
-        seekerObj?.company_type || null
-      }
-      deskripsiPerusahaan={
-        seekerObj?.company_description || null
-      }
+      verified={Boolean(seekerObj?.legal_document_path)}
+      jenisPerusahaan={seekerObj?.company_type || null}
+      deskripsiPerusahaan={seekerObj?.company_description || null}
       alamatDomain={seekerObj?.website || null}
-      userParticipationState={
-        userParticipationState
-      }
+      userParticipationState={userParticipationState}
       userTeamName={userTeamName}
       captainTeams={captainTeams}
-      existingSubmissionUrl={
-        existingSubmissionUrl
-      }
+      existingSubmissionUrl={existingSubmissionUrl}
       scoreCriteria={scoreCriteria}
       isFullyJudged={isFullyJudged}
+      entryStatus={entryStatus}
+      isWinner={isWinner}
     />
   );
 }

@@ -53,6 +53,8 @@ export interface ChallengeDetailClientProps {
   // Score panel props
   scoreCriteria?: ScoreCriterion[];
   isFullyJudged?: boolean;
+  entryStatus?: string;
+  isWinner?: boolean;
 }
 
 export default function ChallengeDetailClient({
@@ -88,6 +90,8 @@ export default function ChallengeDetailClient({
   existingSubmissionUrl = "",
   scoreCriteria = [],
   isFullyJudged = false,
+  entryStatus = "registered",
+  isWinner = false,
 }: ChallengeDetailClientProps) {
   const [activeTab, setActiveTab] = useState<string>("Deskripsi");
   const [discussionCount, setDiscussionCount] = useState<number>(discussions.length);
@@ -183,13 +187,17 @@ export default function ChallengeDetailClient({
             existingSubmissionUrl={existingSubmissionUrl}
           />
 
-          {/* Render ScorePanel below ChallengeActionWidget if solver has submitted */}
-          {Boolean(existingSubmissionUrl) && scoreCriteria.length > 0 && (
+          {/* Render ScorePanel below ChallengeActionWidget if solver has joined & criteria exist */}
+          {(Boolean(existingSubmissionUrl) || userParticipationState !== "ACTIVE_NOT_JOINED") && scoreCriteria.length > 0 && (
             <ScorePanel
               criteria={scoreCriteria}
               expertWeight={expertWeight}
               pitchWeight={pitchWeight}
               isFullyJudged={isFullyJudged}
+              entryStatus={entryStatus}
+              isWinner={isWinner}
+              challengeStatus={status}
+              hasSubmission={Boolean(existingSubmissionUrl)}
             />
           )}
 

@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 // TYPES
 // ============================================================
 
-type ManageChallengeEntry = {
+export type ManageChallengeEntry = {
   id: string;
   solverName: string;
   teamName: string | null;
