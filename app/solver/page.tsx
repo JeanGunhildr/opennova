@@ -1,9 +1,8 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/supabase/profile";
 import { getCurrentUser } from "@/lib/supabase/user";
 import { createClient } from "@/lib/supabase/server";
 import JelajahExplorer, { ChallengeItem, CategoryOption } from "@/component/dashboard/JelajahExplorer";
-import { dashboardChallenges } from "@/lib/data/dashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +31,7 @@ export default async function JelajahPage() {
     name: c.name,
   }));
 
-  // 2. Ambil data challenge dari database
+  // 2. Ambil data challenge dari database — hanya yang berstatus ongoing
   const { data: dbChallenges, error: chError } = await supabase
     .from("challenges")
     .select(`
@@ -55,6 +54,7 @@ export default async function JelajahPage() {
         company_type
       )
     `)
+    .eq("status", "ongoing")
     .order("created_at", { ascending: false });
 
   if (chError) {
@@ -112,25 +112,14 @@ export default async function JelajahPage() {
     };
   });
 
-  // Gunakan murni data database jika ada! Jika tabel database masih 0 baris, gunakan mock data sebagai fallback.
-  const mockChallengesEnriched: ChallengeItem[] = dashboardChallenges.map((ch, idx) => ({
-    ...ch,
-    description: "Inovasi nyata dari mitra industri terkemuka untuk mengakselerasi transformasi digital dan keberlanjutan.",
-    companyType: idx % 2 === 0 ? "BUMN" : idx % 3 === 0 ? "UMKM" : "Perusahaan Swasta",
-    createdAt: new Date(Date.now() - idx * 86400000).toISOString(),
-    rawDeadline: new Date(Date.now() + (idx + 5) * 86400000 * 3).toISOString(),
-  }));
-
-  const allChallenges =
-    mappedDbChallenges.length > 0 ? mappedDbChallenges : mockChallengesEnriched;
 
   const userFirstName = profile?.full_name ? profile.full_name.split(" ")[0] : "";
 
   return (
     <JelajahExplorer
-      initialChallenges={allChallenges}
-      categories={categories}
-      userFirstName={userFirstName}
-    />
+    initialChallenges={mappedDbChallenges}
+    categories={categories}
+    userFirstName={userFirstName}
+  />
   );
 }
