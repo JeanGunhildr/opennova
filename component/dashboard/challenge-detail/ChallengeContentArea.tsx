@@ -428,20 +428,60 @@ export default function ChallengeContentArea({
           {/* Comment List */}
           <div className="flex flex-col gap-3">
             {comments.length > 0 ? (
-              comments.map((c) => (
-                <div key={c.id} className="p-3.5 bg-gray-50 border border-gray-100 rounded-[12px]">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[13.5px] font-bold text-gray-900">{c.author}</span>
-                      <span className="text-[10.5px] font-medium px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full">
-                        {c.role}
-                      </span>
+              comments.map((c) => {
+                const isParentSeeker = c.role?.toLowerCase() === "seeker";
+                return (
+                  <div key={c.id} className="p-3.5 bg-gray-50 border border-gray-200 rounded-[12px]">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13.5px] font-bold text-gray-900">{c.author}</span>
+                        {isParentSeeker ? (
+                          <span className="bg-red-100 text-primary-600 border border-red-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                            <CheckCircle2 size={11} />
+                            <span>Seeker (Penyelenggara)</span>
+                          </span>
+                        ) : (
+                          <span className="text-[10.5px] font-medium px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full">
+                            {c.role || "Solver"}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11.5px] text-gray-400">{c.time}</span>
                     </div>
-                    <span className="text-[11.5px] text-gray-400">{c.time}</span>
+                    <p className="text-[13px] text-gray-700 mt-1 whitespace-pre-line">{c.text}</p>
+
+                    {/* Nested Replies (e.g. from Seeker) */}
+                    {c.replies && c.replies.length > 0 && (
+                      <div className="mt-3.5 pt-3 border-t border-gray-200/80 flex flex-col gap-2.5 pl-3.5 border-l-2 border-primary-500 ml-1">
+                        {c.replies.map((reply) => {
+                          const isReplySeeker = reply.isOfficial || reply.role?.toLowerCase() === "seeker";
+                          return (
+                            <div key={reply.id} className="p-3 bg-white border border-gray-200/90 rounded-[10px] shadow-2xs">
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-[13px] font-bold text-gray-900">{reply.author}</span>
+                                  {isReplySeeker ? (
+                                    <span className="bg-red-100 text-primary-600 border border-red-200 text-[9.5px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                      <CheckCircle2 size={10} />
+                                      <span>Seeker (Penyelenggara)</span>
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] font-medium px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full">
+                                      {reply.role || "Solver"}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[11px] text-gray-400">{reply.time}</span>
+                              </div>
+                              <p className="text-[12.5px] text-gray-700 mt-1 whitespace-pre-line">{reply.text}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                  <p className="text-[13px] text-gray-700 mt-1">{c.text}</p>
-                </div>
-              ))
+                );
+              })
             ) : (
               <p className="text-[13px] text-gray-500 italic text-center py-4">
                 Belum ada diskusi untuk challenge ini. Jadilah yang pertama bertanya!

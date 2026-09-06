@@ -1,24 +1,14 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { Inbox, Plus } from "lucide-react";
-
-export type ActiveChallengeStatus = "open" | "expert" | "pitching";
+import { getStatusBadge } from "@/lib/utils/seekerChallengeHelper";
 
 export interface ActiveChallengeItem {
   id: string;
   title: string;
   category: string;
-  status: ActiveChallengeStatus;
+  status: string;
   participants: number;
 }
-
-const STATUS_MAP: Record<
-  ActiveChallengeStatus,
-  { label: string; dotColor: string; bg: string; text: string }
-> = {
-  open:     { label: "Challenge Dibuka",  dotColor: "#54D67A", bg: "#143520",            text: "#54D67A" },
-  expert:   { label: "Penjurian Ahli",    dotColor: "#D8C83A", bg: "#393713",            text: "#D8C83A" },
-  pitching: { label: "Pitching Final",    dotColor: "#E30000", bg: "rgba(227,0,0,0.12)", text: "#FF8A8A" },
-};
 
 interface ActiveChallengePanelProps {
   challenges?: ActiveChallengeItem[];
@@ -83,7 +73,7 @@ export default function ActiveChallengePanel({
           }}
         >
           {challenges.map((c, i) => {
-            const s = STATUS_MAP[c.status] || STATUS_MAP.open;
+            const s = getStatusBadge(c.status);
             const isLast = i === challenges.length - 1;
             return (
               <div
@@ -98,17 +88,18 @@ export default function ActiveChallengePanel({
                 {/* Status dot */}
                 <span
                   className="w-[10px] h-[10px] rounded-full flex-shrink-0"
-                  style={{ background: s.dotColor }}
+                  style={{ background: s.text }}
                 />
 
                 {/* Title + meta */}
                 <div className="min-w-0 pr-2">
-                  <p
-                    className="text-white font-semibold leading-[1.3] truncate"
+                  <Link
+                    href={`/seeker/challenges/${c.id}`}
+                    className="text-white font-semibold leading-[1.3] truncate hover:text-[#FF6B6B] transition-colors block"
                     style={{ fontSize: "15px" }}
                   >
                     {c.title}
-                  </p>
+                  </Link>
                   <p
                     className="text-[12px] mt-0.5 truncate"
                     style={{ color: "#737373" }}

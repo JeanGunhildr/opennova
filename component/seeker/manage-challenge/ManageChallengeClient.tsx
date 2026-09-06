@@ -1,37 +1,47 @@
 "use client";
 
 import { useState } from "react";
-import {
-  SeekerLifecycleStage,
-  CURRENT_SEEKER_STAGE,
-  MOCK_SEEKER_CHALLENGE_SUMMARY,
-} from "@/lib/data/seekerChallengeState";
+import type { ManageChallengeData } from "@/lib/actions/seeker-manage";
 import ManageChallengeHeader from "./ManageChallengeHeader";
 import AssessmentSubmenu from "./AssessmentSubmenu";
 import ChallengeSettingsTab from "./ChallengeSettingsTab";
 import DiscussionTab from "./discussion/DiscussionTab";
 
-interface ManageChallengeClientProps {
-  id: string;
+// Map challenge DB status → internal lifecycle stage
+export type SeekerLifecycleStage =
+  | "PENJURIAN_AHLI"
+  | "PITCHING_FINAL"
+  | "PENGUMUMAN_PEMENANG";
+
+function mapStatusToStage(status: string): SeekerLifecycleStage {
+  switch (status) {
+    case "judging":
+      return "PENJURIAN_AHLI";
+    case "final_pitch":
+      return "PITCHING_FINAL";
+    case "completed":
+      return "PENGUMUMAN_PEMENANG";
+    default:
+      // ongoing & others default to expert judging view
+      return "PENJURIAN_AHLI";
+  }
 }
 
-export default function ManageChallengeClient({ id }: ManageChallengeClientProps) {
-  // Testable lifecycle stage switcher
-  const [activeStage, setActiveStage] = useState<SeekerLifecycleStage>(CURRENT_SEEKER_STAGE);
+interface ManageChallengeClientProps {
+  data: ManageChallengeData;
+}
 
-  // Primary tab state: default to "assessment" (Submenu 1)
-  const [primaryTab, setPrimaryTab] = useState<"assessment" | "discussion" | "settings">("assessment");
-
-  const challenge = {
-    ...MOCK_SEEKER_CHALLENGE_SUMMARY,
-    id: id || MOCK_SEEKER_CHALLENGE_SUMMARY.id,
-  };
+export default function ManageChallengeClient({ data }: ManageChallengeClientProps) {
+  const defaultStage = mapStatusToStage(data.status);
+  const [activeStage, setActiveStage] = useState<SeekerLifecycleStage>(defaultStage);
+  const [primaryTab, setPrimaryTab] = useState<"assessment" | "discussion" | "settings">(
+    "assessment"
+  );
 
   return (
     <div className="w-full min-h-screen bg-[#171717] text-white">
-      {/* Container */}
       <div className="w-full max-w-[1180px] mx-auto px-4 sm:px-6 lg:px-7 pt-5 pb-16">
-        {/* Developer Testing Bar: Lifecycle Switcher */}
+        {/* Developer Testing Bar: Lifecycle Switcher (3 stages only) */}
         <div className="flex items-center justify-between gap-3 bg-[#191919] border border-[#303030] rounded-full px-3.5 py-1.5 mb-5 text-xs text-[#A4A4A4]">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#E30000] animate-pulse" />
@@ -41,10 +51,9 @@ export default function ManageChallengeClient({ id }: ManageChallengeClientProps
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             {(
               [
-                ["CHALLENGE_DIBUKA", "1. Dibuka"],
-                ["PENJURIAN_AHLI", "2. Penjurian Ahli"],
-                ["PITCHING_FINAL", "3. Pitching Final"],
-                ["PENGUMUMAN_PEMENANG", "4. Pemenang"],
+                ["PENJURIAN_AHLI", "1. Penjurian Ahli"],
+                ["PITCHING_FINAL", "2. Pitching Final"],
+                ["PENGUMUMAN_PEMENANG", "3. Pemenang"],
               ] as const
             ).map(([stageKey, label]) => {
               const isSelected = activeStage === stageKey;
@@ -67,7 +76,7 @@ export default function ManageChallengeClient({ id }: ManageChallengeClientProps
         </div>
 
         {/* ── Summary Header ────────────────────────────────────── */}
-        <ManageChallengeHeader challenge={challenge} stage={activeStage} />
+        <ManageChallengeHeader data={data} stage={activeStage} />
 
         {/* ── Primary 3-Tab Navigation Bar ─────────────────────── */}
         <div className="h-[48px] border-b border-[#393939] flex items-stretch gap-7 sm:gap-8 mt-6">
@@ -80,7 +89,7 @@ export default function ManageChallengeClient({ id }: ManageChallengeClientProps
                 : "text-[#737373] hover:text-[#A4A4A4]"
             }`}
           >
-            Penilaian & Pemenang
+            Penilaian &amp; Pemenang
           </button>
 
           <button
@@ -110,15 +119,18 @@ export default function ManageChallengeClient({ id }: ManageChallengeClientProps
 
         {/* ── Tab Content Area ─────────────────────────────────── */}
         {primaryTab === "assessment" && (
-          <AssessmentSubmenu stage={activeStage} />
+          <AssessmentSubmenu data={data} stage={activeStage} />
         )}
 
         {primaryTab === "discussion" && (
-          <DiscussionTab challengeTitle={challenge.title} />
+          <DiscussionTab
+            challengeId={data.id}
+            companyName={data.companyName ?? "Penyelenggara"}
+          />
         )}
 
         {primaryTab === "settings" && (
-          <ChallengeSettingsTab challengeTitle={challenge.title} />
+          <ChallengeSettingsTab challengeId={data.id} data={data} />
         )}
       </div>
     </div>

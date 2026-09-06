@@ -1,79 +1,82 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useTransition, useEffect } from "react";
 import {
   MessageSquare,
   MessageSquareOff,
   Search,
   RefreshCw,
 } from "lucide-react";
+import type {
+  SeekerDiscussionThread,
+} from "@/lib/actions/seeker-discussion";
 import {
-  DiscussionThread,
-  MOCK_INITIAL_DISCUSSIONS,
-} from "@/lib/data/seekerDiscussionData";
+  getSeekerDiscussionsAction,
+  postSeekerAnnouncementAction,
+  postSeekerReplyAction,
+} from "@/lib/actions/seeker-discussion";
 import DiscussionComposer from "./DiscussionComposer";
 import DiscussionThreadCard from "./DiscussionThreadCard";
 
 interface DiscussionTabProps {
-  challengeTitle: string;
-  companyName?: string;
+  challengeId: string;
+  companyName: string;
+  /** Initial threads pre-loaded from server (optional SSR data) */
+  initialThreads?: SeekerDiscussionThread[];
 }
 
 export default function DiscussionTab({
-  companyName = "Telkom Indonesia",
+  challengeId,
+  companyName,
+  initialThreads = [],
 }: DiscussionTabProps) {
-  const [threads, setThreads] = useState<DiscussionThread[]>(MOCK_INITIAL_DISCUSSIONS);
+  const [threads, setThreads] = useState<SeekerDiscussionThread[]>(initialThreads);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(initialThreads.length > 0);
 
-  // Post an official announcement (adds as a new discussion thread)
+  // Fetch on mount if no initial data was provided — MUST be in useEffect, not render body
+  useEffect(() => {
+    if (loaded) return;
+    startTransition(async () => {
+      const data = await getSeekerDiscussionsAction(challengeId);
+      setThreads(data);
+      setLoaded(true);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [challengeId]);
+
+  // Post an official announcement (Seeker top-level post)
   const handlePostAnnouncement = (content: string) => {
-    const now = new Date();
-    const timeFormatted = `${now.toLocaleDateString("id-ID", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    })}, ${now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB`;
-
-    const newThread: DiscussionThread = {
-      id: `thread-${Date.now()}`,
-      authorName: companyName,
-      authorRole: "Solver", // Handled by standard thread structure, or displayed as official notice
-      timestamp: timeFormatted,
-      content,
-      replies: [],
-    };
-
-    setThreads((prev) => [newThread, ...prev]);
+    startTransition(async () => {
+      const result = await postSeekerAnnouncementAction(challengeId, content);
+      if (result.success && result.thread) {
+        setThreads((prev) => [result.thread!, ...prev]);
+      } else {
+        setLoadError(result.error ?? "Gagal memposting pengumuman.");
+      }
+    });
   };
 
   // Reply to an existing solver thread as Seeker
   const handleSendReply = (threadId: string, content: string) => {
-    const now = new Date();
-    const timeFormatted = `${now.toLocaleDateString("id-ID", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    })}, ${now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB`;
-
-    setThreads((prev) =>
-      prev.map((t) => {
-        if (t.id !== threadId) return t;
-        return {
-          ...t,
-          replies: [
-            ...t.replies,
-            {
-              id: `reply-${Date.now()}`,
-              authorName: companyName,
-              authorRole: "Seeker",
-              isOfficial: true,
-              timestamp: timeFormatted,
-              content,
-            },
-          ],
-        };
-      })
-    );
+    startTransition(async () => {
+      const result = await postSeekerReplyAction(challengeId, threadId, content);
+      if (result.success && result.reply) {
+        setThreads((prev) =>
+          prev.map((t) => {
+            if (t.id !== threadId) return t;
+            return {
+              ...t,
+              replies: [...t.replies, result.reply!],
+            };
+          })
+        );
+      } else {
+        setLoadError(result.error ?? "Gagal mengirim balasan.");
+      }
+    });
   };
 
   // Filter threads by search query
@@ -96,10 +99,13 @@ export default function DiscussionTab({
           <div className="w-7 h-7 rounded-full bg-[rgba(227,0,0,0.1)] border border-[rgba(227,0,0,0.3)] text-[#E30000] flex items-center justify-center shrink-0">
             <MessageSquare size={14} />
           </div>
-          <h2 className="text-sm font-bold text-white">Diskusi & Tanya Jawab</h2>
+          <h2 className="text-sm font-bold text-white">Diskusi &amp; Tanya Jawab</h2>
           <span className="text-[10px] font-semibold text-[#A4A4A4] bg-[#2A2829] border border-[#393939] px-2.5 py-0.5 rounded-full">
             Total Diskusi: {threads.length}
           </span>
+          {isPending && (
+            <span className="text-[10px] text-[#737373] animate-pulse">Memuat...</span>
+          )}
         </div>
 
         {/* Search Input & Reset */}
@@ -129,7 +135,12 @@ export default function DiscussionTab({
         </div>
       </div>
 
-      {/* ── Top Discussion Composer ───────────────────────────── */}
+      {/* Error */}
+      {loadError && (
+        <p className="text-[11px] text-[#E30000] mb-3">{loadError}</p>
+      )}
+
+      {/* ── Top Discussion Composer (Seeker posts announcement) ── */}
       <DiscussionComposer onPostAnnouncement={handlePostAnnouncement} />
 
       {/* ── Thread List or Empty State ────────────────────────── */}

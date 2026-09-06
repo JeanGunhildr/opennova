@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-export type TabId = "all" | "active" | "completed";
+export type TabId = "all" | "pending" | "active" | "completed";
 
 interface Tab {
   id: TabId;
@@ -13,6 +13,7 @@ interface ChallengeTabsProps {
   onTabChange: (id: TabId) => void;
   counts?: {
     all: number;
+    pending: number;
     active: number;
     completed: number;
   };
@@ -24,9 +25,10 @@ export default function ChallengeTabs({
   counts,
 }: ChallengeTabsProps) {
   const tabs: Tab[] = [
-    { id: "all",       label: "Semua Challenge", count: counts?.all ?? 0 },
-    { id: "active",    label: "Aktif",           count: counts?.active ?? 0 },
-    { id: "completed", label: "Selesai",         count: counts?.completed ?? 0 },
+    { id: "all", label: "Semua Challenge", count: counts?.all ?? 0 },
+    { id: "pending", label: "Pending", count: counts?.pending ?? 0 },
+    { id: "active", label: "Aktif", count: counts?.active ?? 0 },
+    { id: "completed", label: "Selesai", count: counts?.completed ?? 0 },
   ];
 
   return (

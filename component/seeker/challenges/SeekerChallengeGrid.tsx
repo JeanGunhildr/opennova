@@ -1,13 +1,10 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { Plus, Inbox } from "lucide-react";
 import type { SeekerChallenge } from "./SeekerChallengeCard";
 import SeekerChallengeCard from "./SeekerChallengeCard";
 import type { TabId } from "./ChallengeTabs";
-
-const ACTIVE_LIFECYCLES = new Set(["open", "expert", "pitching"]);
-const COMPLETED_LIFECYCLES = new Set(["winner"]);
 
 interface SeekerChallengeGridProps {
   activeTab: TabId;
@@ -17,13 +14,12 @@ interface SeekerChallengeGridProps {
 export default function SeekerChallengeGrid({ activeTab, challenges }: SeekerChallengeGridProps) {
   const filtered = challenges.filter((c) => {
     if (activeTab === "all") return true;
-    if (activeTab === "active") return ACTIVE_LIFECYCLES.has(c.lifecycle);
-    if (activeTab === "completed") return COMPLETED_LIFECYCLES.has(c.lifecycle);
-    return true;
+    return c.canonicalTab === activeTab;
   });
 
   if (filtered.length === 0) {
     const isAll = activeTab === "all";
+    const isPending = activeTab === "pending";
     const isActive = activeTab === "active";
 
     return (
@@ -41,6 +37,8 @@ export default function SeekerChallengeGrid({ activeTab, challenges }: SeekerCha
         <p className="text-white font-bold text-[18px]">
           {isAll
             ? "Belum Ada Challenge"
+            : isPending
+            ? "Tidak Ada Challenge Pending"
             : isActive
             ? "Tidak Ada Challenge Aktif"
             : "Tidak Ada Challenge Selesai"}
@@ -49,6 +47,8 @@ export default function SeekerChallengeGrid({ activeTab, challenges }: SeekerCha
         <p className="text-[14px] mt-1.5 max-w-[420px] leading-[1.5]" style={{ color: "#737373" }}>
           {isAll
             ? "Anda belum mempublikasikan challenge apa pun. Mulai buat challenge pertama Anda untuk menemukan solusi terbaik dari inovator."
+            : isPending
+            ? "Saat ini tidak ada challenge yang sedang menunggu persetujuan admin."
             : isActive
             ? "Saat ini tidak ada challenge yang sedang berlangsung di tahap pembukaan atau penjurian."
             : "Belum ada challenge yang telah menyelesaikan seluruh tahapan penilaian akhir."}

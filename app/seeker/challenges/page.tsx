@@ -1,14 +1,12 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/supabase/user";
 import { getCurrentProfile } from "@/lib/supabase/profile";
 import { createClient } from "@/lib/supabase/server";
 
 import ChallengeHeader from "@/component/seeker/challenges/ChallengeHeader";
 import SeekerChallengesClient from "@/component/seeker/challenges/SeekerChallengesClient";
-import type {
-  SeekerChallenge,
-  ChallengeLifecycle,
-} from "@/component/seeker/challenges/SeekerChallengeCard";
+import type { SeekerChallenge } from "@/component/seeker/challenges/SeekerChallengeCard";
+import { getCanonicalTab, getParticipantCount } from "@/lib/utils/seekerChallengeHelper";
 
 export const dynamic = "force-dynamic";
 
@@ -20,51 +18,6 @@ const GRADIENTS = [
   { bgFrom: "#0a1a0a", bgVia: "#142814", bgTo: "#081408" },
   { bgFrom: "#1a0d0d", bgVia: "#2a1515", bgTo: "#140a0a" },
 ];
-
-function computeLifecycle(
-  status: string,
-  timelines?: { title: string; start_date: string | null; end_date: string | null }[]
-): ChallengeLifecycle {
-  if (status === "completed" || status === "closed" || status === "winner") {
-    return "winner";
-  }
-
-  if (!timelines || timelines.length === 0) {
-    return "open";
-  }
-
-  const now = new Date();
-
-  // Cari timeline pengumuman
-  const announcement = timelines.find((t) =>
-    t.title.toLowerCase().includes("pengumuman")
-  );
-  if (announcement?.start_date && now >= new Date(announcement.start_date)) {
-    return "winner";
-  }
-
-  // Cari timeline pitching
-  const pitch = timelines.find((t) =>
-    t.title.toLowerCase().includes("pitch")
-  );
-  if (pitch?.start_date && now >= new Date(pitch.start_date)) {
-    if (!pitch.end_date || now <= new Date(pitch.end_date)) {
-      return "pitching";
-    }
-  }
-
-  // Cari timeline penjurian ahli
-  const expert = timelines.find((t) =>
-    t.title.toLowerCase().includes("ahli")
-  );
-  if (expert?.start_date && now >= new Date(expert.start_date)) {
-    if (!expert.end_date || now <= new Date(expert.end_date)) {
-      return "expert";
-    }
-  }
-
-  return "open";
-}
 
 export default async function SeekerChallengesPage() {
   const user = await getCurrentUser();
@@ -97,6 +50,7 @@ export default async function SeekerChallengesPage() {
         id
       ),
       challenge_timelines (
+        id,
         title,
         start_date,
         end_date,
@@ -115,9 +69,8 @@ export default async function SeekerChallengesPage() {
       ? ch.categories[0]?.name
       : (ch.categories as { name: string } | null)?.name || "Umum";
 
-    const participants = Array.isArray(ch.challenge_entries)
-      ? ch.challenge_entries.length
-      : 0;
+    // Source of truth: participantCount = challenge_entries length
+    const participants = getParticipantCount(ch.challenge_entries);
 
     const publishedDate = ch.created_at
       ? new Intl.DateTimeFormat("id-ID", {
@@ -134,10 +87,7 @@ export default async function SeekerChallengesPage() {
     }).format(Number(ch.prize_pool) || 0);
 
     const grad = GRADIENTS[idx % GRADIENTS.length];
-    const lifecycle = computeLifecycle(
-      ch.status || "open",
-      ch.challenge_timelines as any
-    );
+    const canonicalTab = getCanonicalTab(ch.status || "pending");
 
     let thumbnailUrl = ch.thumbnail_path;
     if (thumbnailUrl && !thumbnailUrl.startsWith("http://") && !thumbnailUrl.startsWith("https://")) {
@@ -152,7 +102,8 @@ export default async function SeekerChallengesPage() {
       reward,
       participants,
       publishedDate,
-      lifecycle,
+      status: ch.status || "pending",
+      canonicalTab,
       thumbnailUrl,
       bgFrom: grad.bgFrom,
       bgVia: grad.bgVia,

@@ -2,41 +2,44 @@
 
 import { useState } from "react";
 import { ExternalLink, Copy, Check, ChevronDown } from "lucide-react";
-import type { CriterionDefinition } from "@/lib/data/seekerChallengeState";
+import type { CriterionDefinition } from "./ScoreDropdown";
 import ScoreDropdown from "./ScoreDropdown";
 
 export interface SubmissionRowData {
-  id: string;
+  id: string; // entry_id
   solverName: string;
   avatar: string;
   registrationType: "Individu" | "Tim";
-  driveUrl: string;
+  driveUrl: string | null;
   email?: string;
-  status?: "notRated" | "rated";
-  isAssessed?: boolean;
+  /** Whether ALL criteria for this stage have a score in DB */
+  isRated?: boolean;
   scores: Record<string, number>;
 }
 
 interface SubmissionRowProps {
   submission: SubmissionRowData;
+  challengeId: string;
   criteria: CriterionDefinition[];
-  stage: "CHALLENGE_DIBUKA" | "PENJURIAN_AHLI" | "PITCHING_FINAL" | "PENGUMUMAN_PEMENANG";
+  stage: "PENJURIAN_AHLI" | "PITCHING_FINAL" | "PENGUMUMAN_PEMENANG";
   sectionType: "expert" | "pitching" | "winner";
-  onSaveScores: (id: string, scores: Record<string, number>) => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  onScoresSaved?: (id: string, scores: Record<string, number>) => void;
 }
 
 export default function SubmissionRow({
   submission,
+  challengeId,
   criteria,
   stage,
   sectionType,
-  onSaveScores,
   isExpanded,
   onToggleExpand,
+  onScoresSaved,
 }: SubmissionRowProps) {
   const [copiedEmail, setCopiedEmail] = useState(false);
+  const [isRated, setIsRated] = useState(submission.isRated ?? false);
 
   const handleCopyEmail = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -48,9 +51,7 @@ export default function SubmissionRow({
 
   // Determine scoring trigger mode: editable | disabled | readOnly
   let triggerMode: "editable" | "disabled" | "readOnly" = "editable";
-  if (stage === "CHALLENGE_DIBUKA") {
-    triggerMode = "disabled";
-  } else if (stage === "PENJURIAN_AHLI") {
+  if (stage === "PENJURIAN_AHLI") {
     triggerMode = sectionType === "expert" ? "editable" : "disabled";
   } else if (stage === "PITCHING_FINAL") {
     triggerMode = sectionType === "pitching" ? "editable" : "disabled";
@@ -58,10 +59,9 @@ export default function SubmissionRow({
     triggerMode = "readOnly";
   }
 
-  // Determine row style when locked/dimmed
   const isDimmed =
     (stage === "PITCHING_FINAL" && sectionType === "expert") ||
-    (stage === "CHALLENGE_DIBUKA" && sectionType === "expert");
+    (stage === "PENGUMUMAN_PEMENANG" && sectionType === "expert");
 
   const isWinnerCard = sectionType === "winner";
 
@@ -133,40 +133,48 @@ export default function SubmissionRow({
             </button>
           )}
 
-          {/* Drive link button */}
-          <a
-            href={submission.driveUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="h-[32px] px-3 rounded-full bg-[#2A2829] border border-[#4A4A4A] text-white text-[11px] font-medium hover:bg-[#323131] flex items-center gap-1.5 transition-colors shrink-0"
-          >
-            <span>{sectionType === "pitching" ? "Link submission" : "Buka link submission"}</span>
-            <ExternalLink size={12} className="text-[#A4A4A4]" />
-          </a>
+          {/* Drive link button — opens real submissions.drive_url */}
+          {submission.driveUrl ? (
+            <a
+              href={submission.driveUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-[32px] px-3 rounded-full bg-[#2A2829] border border-[#4A4A4A] text-white text-[11px] font-medium hover:bg-[#323131] flex items-center gap-1.5 transition-colors shrink-0"
+            >
+              <span>
+                {sectionType === "pitching" ? "Link submission" : "Buka link submission"}
+              </span>
+              <ExternalLink size={12} className="text-[#A4A4A4]" />
+            </a>
+          ) : (
+            <span className="h-[32px] px-3 rounded-full bg-[#1F1F1F] border border-[#393939] text-[#737373] text-[11px] font-medium flex items-center gap-1.5 shrink-0">
+              Belum ada submission
+            </span>
+          )}
 
           {/* Status Pill (Penjurian Ahli) */}
-          {sectionType === "expert" && stage !== "CHALLENGE_DIBUKA" && (
+          {sectionType === "expert" && stage !== "PENGUMUMAN_PEMENANG" && (
             <span
               className={`h-[32px] px-3 rounded-full text-[11px] font-semibold inline-flex items-center shrink-0 ${
-                submission.status === "rated"
+                isRated
                   ? "bg-[rgba(57,217,111,0.1)] border border-[rgba(57,217,111,0.26)] text-[#39D96F]"
                   : "bg-[rgba(216,200,58,0.1)] border border-[rgba(216,200,58,0.3)] text-[#D8C83A]"
               }`}
             >
-              {submission.status === "rated" ? "Sudah dinilai" : "Belum dinilai"}
+              {isRated ? "Sudah dinilai" : "Belum dinilai"}
             </span>
           )}
 
           {/* Assessment Indicator (Pitching Final) */}
-          {sectionType === "pitching" && stage !== "CHALLENGE_DIBUKA" && (
+          {sectionType === "pitching" && stage !== "PENGUMUMAN_PEMENANG" && (
             <span
               className={`w-[28px] h-[28px] rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                submission.isAssessed
+                isRated
                   ? "bg-[rgba(57,217,111,0.08)] border border-[rgba(57,217,111,0.25)] text-[#39D96F]"
                   : "bg-[rgba(216,200,58,0.08)] border border-[rgba(216,200,58,0.32)] text-[#D8C83A]"
               }`}
             >
-              {submission.isAssessed ? "✓" : "✕"}
+              {isRated ? "✓" : "✕"}
             </span>
           )}
 
@@ -223,14 +231,16 @@ export default function SubmissionRow({
       {/* Expanded Scoring Dropdown */}
       {isExpanded && triggerMode !== "disabled" && (
         <ScoreDropdown
+          entryId={submission.id}
+          challengeId={challengeId}
           criteria={criteria}
           initialScores={submission.scores}
-          onSave={(scores) => {
-            onSaveScores(submission.id, scores);
-            onToggleExpand();
-          }}
           onClose={onToggleExpand}
           readOnly={triggerMode === "readOnly"}
+          onSaved={(scores) => {
+            setIsRated(true);
+            onScoresSaved?.(submission.id, scores);
+          }}
         />
       )}
     </div>

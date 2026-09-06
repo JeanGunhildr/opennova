@@ -4,6 +4,16 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { formatTimestamp } from "@/lib/utils/formatDate";
 
+export interface DiscussionReply {
+  id: string;
+  author: string;
+  role: string;
+  time: string;
+  text: string;
+  created_at: string;
+  isOfficial?: boolean;
+}
+
 export interface DiscussionComment {
   id: string;
   author: string;
@@ -11,6 +21,7 @@ export interface DiscussionComment {
   time: string;
   text: string;
   created_at: string;
+  replies?: DiscussionReply[];
 }
 
 /**
@@ -35,22 +46,13 @@ export async function getDiscussionsAction(
         id,
         content,
         created_at,
-        user_id
+        user_id,
+        parent_message_id
       `)
       .eq("challenge_id", challengeId)
       .order("created_at", {
         ascending: true,
       });
-
-    console.log(
-      "DISCUSSION DARI DATABASE:",
-      discussions
-    );
-
-    console.log(
-      "JUMLAH:",
-      discussions?.length
-    );
 
     if (discussionError) {
       console.error(
@@ -116,40 +118,50 @@ export async function getDiscussionsAction(
     );
 
     // =====================================================
-    // 5. GABUNGKAN KOMENTAR + PROFILE
+    // 5. GABUNGKAN BALASAN (REPLIES) DENGAN PARENT
     // =====================================================
 
-    return discussions.map((item) => {
-      const profile = profileMap.get(
-        item.user_id
-      );
+    const repliesMap = new Map<string, DiscussionReply[]>();
 
-      const roleStr =
-        profile?.role || "solver";
+    for (const item of discussions) {
+      if (item.parent_message_id) {
+        const profile = profileMap.get(item.user_id);
+        const roleStr = profile?.role || "solver";
+        const isSeeker = roleStr.toLowerCase() === "seeker";
 
-      const displayRole =
-        roleStr.toLowerCase() === "seeker"
-          ? "Seeker"
-          : "Solver";
+        const replyObj: DiscussionReply = {
+          id: item.id,
+          author: profile?.full_name || "Pengguna",
+          role: isSeeker ? "Seeker" : "Solver",
+          time: formatTimestamp(item.created_at),
+          text: item.content,
+          created_at: item.created_at,
+          isOfficial: isSeeker,
+        };
+
+        if (!repliesMap.has(item.parent_message_id)) {
+          repliesMap.set(item.parent_message_id, []);
+        }
+        repliesMap.get(item.parent_message_id)!.push(replyObj);
+      }
+    }
+
+    // Hanya ambil komentar tingkat teratas (parent_message_id IS NULL)
+    const topLevel = discussions.filter((item) => !item.parent_message_id);
+
+    return topLevel.map((item) => {
+      const profile = profileMap.get(item.user_id);
+      const roleStr = profile?.role || "solver";
+      const displayRole = roleStr.toLowerCase() === "seeker" ? "Seeker" : "Solver";
 
       return {
         id: item.id,
-
-        author:
-          profile?.full_name ||
-          "Pengguna",
-
+        author: profile?.full_name || "Pengguna",
         role: displayRole,
-
-        // created_at LANGSUNG dari database
-        time: formatTimestamp(
-          item.created_at
-        ),
-
+        time: formatTimestamp(item.created_at),
         text: item.content,
-
-        // Timestamp asli dari database
         created_at: item.created_at,
+        replies: repliesMap.get(item.id) || [],
       };
     });
   } catch (error) {
@@ -327,6 +339,7 @@ export async function addDiscussionCommentAction(
 
       // Simpan timestamp asli
       created_at: createdAtIso,
+      replies: [],
     };
 
     // =====================================================

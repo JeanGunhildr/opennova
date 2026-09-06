@@ -1,13 +1,16 @@
 "use client";
 
+import type { ManageChallengeData } from "@/lib/actions/seeker-manage";
 import ChallengeSettingsForm from "./settings/ChallengeSettingsForm";
 
 interface ChallengeSettingsTabProps {
-  challengeTitle: string;
+  challengeId: string;
+  data: ManageChallengeData;
 }
 
 export default function ChallengeSettingsTab({
-  challengeTitle,
+  challengeId,
+  data,
 }: ChallengeSettingsTabProps) {
-  return <ChallengeSettingsForm challengeTitle={challengeTitle} />;
+  return <ChallengeSettingsForm challengeId={challengeId} data={data} />;
 }

@@ -1,9 +1,8 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { Users } from "lucide-react";
-
-export type ChallengeLifecycle = "open" | "expert" | "pitching" | "winner";
+import { getStatusBadge } from "@/lib/utils/seekerChallengeHelper";
 
 export interface SeekerChallenge {
   id: string;
@@ -12,23 +11,17 @@ export interface SeekerChallenge {
   reward: string;
   participants: number;
   publishedDate: string;
-  lifecycle: ChallengeLifecycle;
+  status: string;
+  canonicalTab: "pending" | "active" | "completed";
   thumbnailUrl?: string | null;
   bgFrom: string;
   bgVia: string;
   bgTo: string;
 }
 
-const LIFECYCLE_MAP: Record<ChallengeLifecycle, { label: string; bg: string; text: string }> = {
-  open:     { label: "Challenge Dibuka",      bg: "#143520",              text: "#54D67A" },
-  expert:   { label: "Penjurian Ahli",        bg: "#393713",              text: "#D8C83A" },
-  pitching: { label: "Pitching Final",        bg: "rgba(227,0,0,0.14)",   text: "#FF8A8A" },
-  winner:   { label: "Pengumuman Pemenang",   bg: "rgba(84,214,122,0.12)",text: "#54D67A" },
-};
-
 export default function SeekerChallengeCard({ challenge }: { challenge: SeekerChallenge }) {
-  const { id, title, category, reward, participants, publishedDate, lifecycle, thumbnailUrl, bgFrom, bgVia, bgTo } = challenge;
-  const ls = LIFECYCLE_MAP[lifecycle] || LIFECYCLE_MAP.open;
+  const { id, title, category, reward, participants, publishedDate, status, thumbnailUrl, bgFrom, bgVia, bgTo } = challenge;
+  const ls = getStatusBadge(status);
 
   return (
     <article

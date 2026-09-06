@@ -1,22 +1,35 @@
 "use client";
 
-import { useState } from "react";
-import type { CriterionDefinition } from "@/lib/data/seekerChallengeState";
+import { useState, useTransition } from "react";
+import { CheckCircle2 } from "lucide-react";
+import { saveBatchScoresAction } from "@/lib/actions/seeker-manage";
+
+export interface CriterionDefinition {
+  id: string;
+  name: string;
+  description: string | null;
+}
 
 interface ScoreDropdownProps {
+  entryId: string;
+  challengeId: string;
   criteria: CriterionDefinition[];
   initialScores?: Record<string, number>;
-  onSave?: (scores: Record<string, number>) => void;
   onClose?: () => void;
+  /** If true: read-only display, no save button */
   readOnly?: boolean;
+  /** Called after successful save with new scores */
+  onSaved?: (scores: Record<string, number>) => void;
 }
 
 export default function ScoreDropdown({
+  entryId,
+  challengeId,
   criteria,
   initialScores = {},
-  onSave,
   onClose,
   readOnly = false,
+  onSaved,
 }: ScoreDropdownProps) {
   const [scores, setScores] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
@@ -30,8 +43,17 @@ export default function ScoreDropdown({
     return init;
   });
 
+  const [savedSuccessfully, setSavedSuccessfully] = useState(
+    // Pre-mark as saved if all criteria already have scores
+    criteria.length > 0 &&
+      criteria.every((c) => initialScores[c.id] !== undefined)
+  );
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
   const handleInputChange = (critId: string, val: string) => {
-    // Only allow digits and max 100
+    setSavedSuccessfully(false);
+    setSaveError(null);
     if (val === "") {
       setScores((prev) => ({ ...prev, [critId]: "" }));
       return;
@@ -47,25 +69,34 @@ export default function ScoreDropdown({
     }
   };
 
-  // Check validity: all fields must be non-empty and between 0 and 100
   const allFilled = criteria.every((crit) => {
     const val = scores[crit.id];
     return val !== undefined && val.trim() !== "" && !isNaN(Number(val));
   });
 
-  // Calculate dynamic total score
   const totalScore = criteria.reduce((sum, crit) => {
     const val = parseInt(scores[crit.id] || "0", 10);
     return sum + (isNaN(val) ? 0 : val);
   }, 0);
 
   const handleSave = () => {
-    if (!allFilled || !onSave) return;
+    if (!allFilled) return;
+    setSaveError(null);
+
     const finalScores: Record<string, number> = {};
     criteria.forEach((crit) => {
       finalScores[crit.id] = parseInt(scores[crit.id] || "0", 10);
     });
-    onSave(finalScores);
+
+    startTransition(async () => {
+      const result = await saveBatchScoresAction(entryId, finalScores, challengeId);
+      if (result.success) {
+        setSavedSuccessfully(true);
+        onSaved?.(finalScores);
+      } else {
+        setSaveError(result.error ?? "Gagal menyimpan nilai.");
+      }
+    });
   };
 
   return (
@@ -86,11 +117,13 @@ export default function ScoreDropdown({
             >
               <div className="flex flex-col gap-0.5 min-w-0 pr-2">
                 <span className="text-xs font-bold text-white leading-tight">
-                  {crit.label}
+                  {crit.name}
                 </span>
-                <span className="text-[10px] text-[#737373] leading-normal">
-                  {crit.description}
-                </span>
+                {crit.description && (
+                  <span className="text-[10px] text-[#737373] leading-normal">
+                    {crit.description}
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
@@ -119,7 +152,12 @@ export default function ScoreDropdown({
         })}
       </div>
 
-      {/* Footer: Total Score & Save Button */}
+      {/* Save Error */}
+      {saveError && (
+        <p className="text-[10px] text-[#E30000] mt-2">{saveError}</p>
+      )}
+
+      {/* Footer */}
       <div className="flex items-center justify-between gap-3 mt-3 pt-2.5 border-t border-[#393939]">
         <div className="h-[32px] px-3 rounded-full border border-[#4A4A4A] text-white text-[11px] font-bold flex items-center gap-1.5 bg-[#2A2829]">
           <span className="text-[#A4A4A4] font-normal text-[10px]">Total Nilai:</span>
@@ -138,18 +176,27 @@ export default function ScoreDropdown({
           )}
 
           {!readOnly && (
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={!allFilled}
-              className={`h-[34px] px-4 rounded-full text-[11px] font-bold transition-all flex items-center justify-center ${
-                allFilled
-                  ? "bg-[#E30000] hover:bg-[#CC0000] text-white cursor-pointer shadow-sm active:scale-[0.98]"
-                  : "bg-[#393939] text-[#737373] cursor-not-allowed border border-[#4A4A4A]"
-              }`}
-            >
-              Simpan
-            </button>
+            <>
+              {savedSuccessfully ? (
+                <div className="h-[34px] px-4 rounded-full bg-[rgba(57,217,111,0.1)] border border-[rgba(57,217,111,0.3)] text-[#39D96F] text-[11px] font-bold flex items-center gap-1.5">
+                  <CheckCircle2 size={13} />
+                  <span>Sudah dinilai</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={!allFilled || isPending}
+                  className={`h-[34px] px-4 rounded-full text-[11px] font-bold transition-all flex items-center justify-center ${
+                    allFilled && !isPending
+                      ? "bg-[#E30000] hover:bg-[#CC0000] text-white cursor-pointer shadow-sm active:scale-[0.98]"
+                      : "bg-[#393939] text-[#737373] cursor-not-allowed border border-[#4A4A4A]"
+                  }`}
+                >
+                  {isPending ? "Menyimpan..." : "Simpan"}
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
