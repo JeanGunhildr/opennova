@@ -1,12 +1,13 @@
-﻿"use client";
+"use client";
 
 import { Download } from "lucide-react";
 
 export interface CopyrightOption {
-  id: string;
+  id: "transfer-penuh" | "lisensi-non-eksklusif" | "kolaborasi-lanjutan" | string;
   title: string;
   description: string;
-  downloadEnabled: boolean;
+  downloadUrl: string;
+  fileName: string;
 }
 
 interface CopyrightOptionCardProps {
@@ -16,14 +17,20 @@ interface CopyrightOptionCardProps {
 }
 
 export default function CopyrightOptionCard({ option, selected, onSelect }: CopyrightOptionCardProps) {
-  const { id, title, description, downloadEnabled } = option;
-  const isDownloadActive = selected && downloadEnabled;
+  const { id, title, description, downloadUrl, fileName } = option;
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(id)}
-      className="text-left flex flex-col gap-3 rounded-[18px] p-[14px_18px_18px] transition-all duration-200 hover:-translate-y-[1px]"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect(id);
+        }
+      }}
+      className="text-left flex flex-col justify-between rounded-[18px] p-[16px_18px_18px] transition-all duration-200 hover:-translate-y-[1px] cursor-pointer select-none"
       style={{
         minHeight: "184px",
         background: selected
@@ -36,7 +43,7 @@ export default function CopyrightOptionCard({ option, selected, onSelect }: Copy
       }}
     >
       {/* Header row: radio + download */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 mb-3.5">
         {/* Radio indicator */}
         <div
           className="w-[22px] h-[22px] rounded-full flex items-center justify-center flex-shrink-0"
@@ -53,25 +60,34 @@ export default function CopyrightOptionCard({ option, selected, onSelect }: Copy
           )}
         </div>
 
-        {/* Download button */}
-        <span
-          className="inline-flex items-center gap-1.5 h-[30px] px-3 rounded-full text-[12px] font-semibold transition-colors"
-          style={
-            isDownloadActive
-              ? { background: "#FFFFFF", color: "#171717" }
-              : { background: "#373737", color: "#5C5C5C", opacity: 0.7, cursor: "not-allowed" }
-          }
-          onClick={e => {
-            if (!isDownloadActive) e.stopPropagation();
-          }}
-        >
-          <Download size={11} strokeWidth={2.2} />
-          Download
-        </span>
+        {/* Download Control (Gated by Selection) */}
+        {selected ? (
+          /* Active Download Button for Selected Card */
+          <a
+            href={downloadUrl}
+            download={fileName}
+            onClick={(e) => e.stopPropagation()} // Prevents toggling the card's radio/active selection
+            className="inline-flex items-center gap-1.5 h-[30px] px-3 rounded-full text-[11px] md:text-[12px] font-semibold transition-colors duration-200 select-none cursor-pointer bg-white text-black hover:bg-gray-200 shadow-sm"
+          >
+            <Download size={13} strokeWidth={2.2} />
+            <span>Download</span>
+          </a>
+        ) : (
+          /* Disabled / Muted Button for Unselected Cards */
+          <button
+            type="button"
+            disabled
+            tabIndex={-1}
+            className="inline-flex items-center gap-1.5 h-[30px] px-3 rounded-full text-[11px] md:text-[12px] font-semibold select-none cursor-not-allowed bg-[#2A2829]/60 border border-[#393939] text-[#555555] pointer-events-none opacity-60"
+          >
+            <Download size={13} strokeWidth={2.2} className="text-[#555555]" />
+            <span>Download</span>
+          </button>
+        )}
       </div>
 
       {/* Content */}
-      <div>
+      <div className="flex-1 flex flex-col justify-start">
         <p className="text-white font-bold leading-[1.3]" style={{ fontSize: "17px" }}>
           {title}
         </p>
@@ -79,6 +95,6 @@ export default function CopyrightOptionCard({ option, selected, onSelect }: Copy
           {description}
         </p>
       </div>
-    </button>
+    </div>
   );
 }
