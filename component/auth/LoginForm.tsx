@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 import { OpenNovaLogo } from "@/component/landing/Logo";
 import type { AuthView } from "./AuthModal";
@@ -12,49 +12,22 @@ import { createClient } from "@/lib/supabase/client";
 
 interface LoginFormProps {
   onNavigate: (view: AuthView) => void;
+  isDark?: boolean;
 }
 
-function EyeIcon({ open }: { open: boolean }) {
-  return open ? (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  ) : (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-      <line x1="1" y1="1" x2="23" y2="23" />
-    </svg>
-  );
-}
-
-export default function LoginForm({ onNavigate }: LoginFormProps) {
+export default function LoginForm({ onNavigate, isDark }: LoginFormProps) {
   const router = useRouter();
 
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<ToastNotification | null>(null);
+
+  const inputCls = isDark
+    ? "w-full h-[46px] rounded-full border border-[#393939] bg-[#1F1F1F] px-4 text-[14px] text-white placeholder:text-[#6E6E6E] outline-none focus:border-[#E30000] focus:ring-2 focus:ring-[#E30000]/20 transition-all"
+    : "w-full h-[46px] rounded-full border border-[#E5E7EB] bg-[#F0F3F6] px-4 text-[14px] text-gray-900 placeholder:text-[#999999] outline-none focus:border-[#E9201E] focus:bg-white focus:ring-2 focus:ring-[#E9201E]/20 transition-all";
+
+  const labelCls = `block text-[14px] font-medium mb-2 ${isDark ? "text-white" : "text-gray-900"}`;
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -145,13 +118,17 @@ export default function LoginForm({ onNavigate }: LoginFormProps) {
     <>
       {/* Header */}
       <div className="flex flex-col items-center pt-6 pb-5 px-9">
-        <OpenNovaLogo className="mb-4" />
+        <OpenNovaLogo theme={isDark ? "dark" : "light"} className="mb-4" />
 
-        <h1 className="text-[28px] font-bold tracking-[-0.02em] leading-[1.15] text-gray-900 text-center">
-          Masuk Sebagai Solver
+        <h1 className={`text-[28px] font-bold tracking-[-0.02em] leading-[1.15] text-center ${
+          isDark ? "text-white" : "text-gray-900"
+        }`}>
+          {isDark ? "Masuk Sebagai Seeker" : "Masuk Sebagai Solver"}
         </h1>
 
-        <p className="mt-2 text-[14px] text-[#7D7D7D] leading-[1.4] text-center">
+        <p className={`mt-2 text-[14px] leading-[1.4] text-center ${
+          isDark ? "text-[#A4A4A4]" : "text-[#7D7D7D]"
+        }`}>
           Lengkapi info akun untuk masuk ke halaman utama.
         </p>
       </div>
@@ -161,10 +138,7 @@ export default function LoginForm({ onNavigate }: LoginFormProps) {
 
         {/* Email */}
         <div className="mb-4">
-          <label
-            htmlFor="login-email"
-            className="block text-[14px] font-medium text-gray-900 mb-2"
-          >
+          <label htmlFor="login-email" className={labelCls}>
             Email
           </label>
 
@@ -174,16 +148,13 @@ export default function LoginForm({ onNavigate }: LoginFormProps) {
             type="email"
             placeholder="Masukkan email.."
             required
-            className="w-full h-[46px] rounded-full border border-[#E5E7EB] bg-[#F0F3F6] px-4 text-[14px] text-gray-900 placeholder:text-[#999999] outline-none focus:border-[#E9201E] focus:bg-white focus:ring-2 focus:ring-[#E9201E]/20 transition-all"
+            className={inputCls}
           />
         </div>
 
         {/* Password */}
         <div className="mb-4">
-          <label
-            htmlFor="login-password"
-            className="block text-[14px] font-medium text-gray-900 mb-2"
-          >
+          <label htmlFor="login-password" className={labelCls}>
             Password
           </label>
 
@@ -194,7 +165,7 @@ export default function LoginForm({ onNavigate }: LoginFormProps) {
               type={showPass ? "text" : "password"}
               placeholder="Masukkan password.."
               required
-              className="w-full h-[46px] rounded-full border border-[#E5E7EB] bg-[#F0F3F6] px-4 pr-12 text-[14px] text-gray-900 placeholder:text-[#999999] outline-none focus:border-[#E9201E] focus:bg-white focus:ring-2 focus:ring-[#E9201E]/20 transition-all"
+              className={`${inputCls} pr-12`}
             />
 
             <button
@@ -205,9 +176,11 @@ export default function LoginForm({ onNavigate }: LoginFormProps) {
                   : "Tampilkan password"
               }
               onClick={() => setShowPass((prev) => !prev)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A2A2A2] hover:text-gray-700 transition-colors"
+              className={`absolute right-4 top-1/2 -translate-y-1/2 transition-colors ${
+                isDark ? "text-[#737373] hover:text-white" : "text-[#A2A2A2] hover:text-gray-700"
+              }`}
             >
-              <EyeIcon open={showPass} />
+              {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
         </div>
@@ -221,19 +194,24 @@ export default function LoginForm({ onNavigate }: LoginFormProps) {
 
         {/* Remember / Forgot */}
         <div className="flex items-center justify-between mb-5">
-          <label className="flex items-center gap-2 text-[14px] text-gray-900 cursor-pointer select-none">
+          <label className={`flex items-center gap-2 text-[14px] cursor-pointer select-none ${
+            isDark ? "text-[#A4A4A4]" : "text-gray-900"
+          }`}>
             <input
               name="remember"
               type="checkbox"
-              className="w-4 h-4 rounded border-gray-300 accent-[#E9201E]"
+              className={`w-4 h-4 rounded border-gray-300 ${
+                isDark ? "accent-[#E30000]" : "accent-[#E9201E]"
+              }`}
             />
-
             Ingatkan saya
           </label>
 
           <button
             type="button"
-            className="text-[14px] text-[#E9201E] hover:text-[#D91817] font-medium transition-colors"
+            className={`text-[14px] font-medium transition-colors ${
+              isDark ? "text-[#E30000] hover:text-[#CC0000]" : "text-[#E9201E] hover:text-[#D91817]"
+            }`}
           >
             Lupa Password?
           </button>
@@ -243,7 +221,7 @@ export default function LoginForm({ onNavigate }: LoginFormProps) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full h-[46px] rounded-full bg-[#E9201E] hover:bg-[#D91817] active:bg-[#B91413] text-white text-[15px] font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(233,32,30,0.3)]"
+          className="w-full h-[46px] rounded-full bg-[#E30000] hover:bg-[#CC0000] active:scale-[0.98] text-white text-[15px] font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(227,0,0,0.3)] cursor-pointer"
         >
           {loading ? (
             <>
@@ -258,13 +236,13 @@ export default function LoginForm({ onNavigate }: LoginFormProps) {
 
       {/* Footer */}
       <div className="px-9 pb-6 pt-1 flex justify-center">
-        <p className="text-[14px] text-[#7D7D7D]">
+        <p className={`text-[14px] ${isDark ? "text-[#A4A4A4]" : "text-[#7D7D7D]"}`}>
           Belum punya akun?{" "}
 
           <button
             type="button"
             onClick={() => onNavigate("REGISTER_1")}
-            className="text-[#E9201E] hover:text-[#D91817] font-semibold transition-colors"
+            className="text-[#E30000] hover:underline font-semibold transition-colors cursor-pointer"
           >
             Daftar
           </button>

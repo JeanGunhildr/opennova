@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Hero from "@/component/landing/Hero";
-import CollaborationSection from "@/component/landing/CollaborationSection";
-import ChallengeSection from "@/component/landing/ChallengeSection";
-import IncentiveSection from "@/component/landing/IncentiveSection";
+import LandingSections from "@/component/landing/LandingSections";
 
 import { redirect } from "next/navigation";
 import { getCurrentRole, getCurrentUser } from "@/lib/supabase/user";
@@ -44,15 +42,13 @@ export default async function LandingPage() {
   if (profile?.role == "solver") {
     redirect("/solver");
   } else if (profile?.role == "seeker") {
-    redirect("seeker");
+    redirect("/seeker");
   }
 
   return (
     <>
       <Hero />
-      <CollaborationSection />
-      <ChallengeSection />
-      <IncentiveSection />
+      <LandingSections />
     </>
   );
 }

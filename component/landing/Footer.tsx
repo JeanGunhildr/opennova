@@ -1,6 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import { navLinks } from "@/lib/data/landing";
 import { OpenNovaLogo } from "@/component/landing/Logo";
+import { useLandingMode } from "@/component/landing/LandingModeContext";
+import SeekerFooter from "@/component/landing/SeekerFooter";
 
 const footerColumns = [
   {
@@ -26,10 +30,16 @@ const footerColumns = [
 ] as const;
 
 export default function Footer() {
+  const { isSeeker } = useLandingMode();
+
+  if (isSeeker) {
+    return <SeekerFooter />;
+  }
+
   return (
     <footer
       id="kontak"
-      className="bg-gray-50 border-t border-gray-200"
+      className="bg-gray-50 border-t border-gray-200 text-gray-900 transition-colors duration-300"
       aria-label="Footer situs"
     >
       <div className="max-w-7xl mx-auto px-5 sm:px-6 md:px-8 lg:px-10 py-14 md:py-16">
@@ -42,9 +52,11 @@ export default function Footer() {
               aria-label="OpenNova beranda"
               className="inline-block mb-4 rounded-full"
             >
-              <OpenNovaLogo />
+              <OpenNovaLogo theme={isSeeker ? "dark" : "light"} />
             </Link>
-            <p className="text-sm text-gray-500 leading-relaxed max-w-xs">
+            <p className={`text-sm leading-relaxed max-w-xs transition-colors ${
+              isSeeker ? "text-[#A4A4A4]" : "text-gray-500"
+            }`}>
               Platform inovasi terbuka yang menghubungkan solver terbaik dengan
               tantangan nyata dari perusahaan-perusahaan terkemuka Indonesia.
             </p>
@@ -61,7 +73,11 @@ export default function Footer() {
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-sm text-gray-600 hover:text-gray-900 transition-colors duration-150"
+                      className={`text-sm transition-colors duration-150 ${
+                        isSeeker
+                          ? "text-[#A4A4A4] hover:text-white"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
                     >
                       {link.label}
                     </Link>
@@ -73,20 +89,26 @@ export default function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-12 pt-8 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className={`mt-12 pt-8 border-t flex flex-col sm:flex-row items-center justify-between gap-4 ${
+          isSeeker ? "border-[#262626]" : "border-gray-200"
+        }`}>
           <p className="text-xs text-gray-400 order-2 sm:order-1">
             &copy; 2026 OpenNova. Hak cipta dilindungi.
           </p>
           <div className="flex items-center gap-5 order-1 sm:order-2">
             <Link
               href="/privacy"
-              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+              className={`text-xs transition-colors ${
+                isSeeker ? "text-gray-400 hover:text-gray-200" : "text-gray-400 hover:text-gray-600"
+              }`}
             >
               Kebijakan Privasi
             </Link>
             <Link
               href="/terms"
-              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+              className={`text-xs transition-colors ${
+                isSeeker ? "text-gray-400 hover:text-gray-200" : "text-gray-400 hover:text-gray-600"
+              }`}
             >
               Syarat & Ketentuan
             </Link>

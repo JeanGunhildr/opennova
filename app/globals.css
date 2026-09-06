@@ -59,19 +59,60 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── Partner strip marquee ─────────────────────────── */
-@keyframes marquee {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
+/* ==========================================================================
+   GLOBAL MARQUEE ANIMATIONS (ISOLATED TRACKS)
+   ========================================================================== */
+
+@keyframes marquee-forward {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
-.animate-marquee {
-  animation: marquee 30s linear infinite;
+@keyframes marquee-backward {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
+}
+
+/* Fast & brisk for Mitra Inovasi */
+.animate-marquee-partners {
+  display: flex !important;
+  width: max-content !important;
+  animation: marquee-forward 20s linear infinite !important;
+}
+
+/* Smooth & steady for Kategori Row 1 */
+.animate-marquee-categories-1 {
+  display: flex !important;
+  width: max-content !important;
+  animation: marquee-forward 35s linear infinite !important;
+}
+
+/* Smooth & steady for Kategori Row 2 */
+.animate-marquee-categories-2 {
+  display: flex !important;
+  width: max-content !important;
+  animation: marquee-backward 35s linear infinite !important;
+}
+
+.animate-marquee-partners:hover,
+.animate-marquee-categories-1:hover,
+.animate-marquee-categories-2:hover {
+  animation-play-state: paused !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-marquee {
-    animation: none;
+  .animate-marquee-partners,
+  .animate-marquee-categories-1,
+  .animate-marquee-categories-2 {
+    animation: none !important;
   }
 }
 

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   createContext,
@@ -8,9 +8,12 @@ import {
   type ReactNode,
 } from "react";
 
+export type AuthView = "LOGIN" | "REGISTER_1" | "REGISTER_2" | "REGISTER_3" | "TERMS";
+
 interface AuthModalContextValue {
   isOpen: boolean;
-  open: () => void;
+  initialView: AuthView;
+  open: (view?: AuthView) => void;
   close: () => void;
 }
 
@@ -18,10 +21,17 @@ const AuthModalContext = createContext<AuthModalContextValue | null>(null);
 
 export function AuthModalProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
-  const open = useCallback(() => setIsOpen(true), []);
+  const [initialView, setInitialView] = useState<AuthView>("LOGIN");
+
+  const open = useCallback((view: AuthView = "LOGIN") => {
+    setInitialView(view);
+    setIsOpen(true);
+  }, []);
+
   const close = useCallback(() => setIsOpen(false), []);
+
   return (
-    <AuthModalContext.Provider value={{ isOpen, open, close }}>
+    <AuthModalContext.Provider value={{ isOpen, initialView, open, close }}>
       {children}
     </AuthModalContext.Provider>
   );

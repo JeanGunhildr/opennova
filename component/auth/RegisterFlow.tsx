@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { Eye, EyeOff, ArrowLeft, Calendar } from "lucide-react";
 
 import type { AuthView } from "./AuthModal";
 import { OpenNovaLogo } from "@/component/landing/Logo";
@@ -11,6 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 interface RegisterFlowProps {
   view: "REGISTER_1" | "REGISTER_2";
   onNavigate: (view: AuthView) => void;
+  isDark?: boolean;
 }
 
 interface RegisterData {
@@ -27,85 +29,6 @@ interface RegisterData {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Shared icons
-// ─────────────────────────────────────────────────────────────────────────────
-
-function EyeIcon({ open }: { open: boolean }) {
-  return open ? (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  ) : (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-      <line x1="1" y1="1" x2="23" y2="23" />
-    </svg>
-  );
-}
-
-function ArrowLeft() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M10 3L5 8L10 13"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function CalendarIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-      <line x1="16" y1="2" x2="16" y2="6" />
-      <line x1="8" y1="2" x2="8" y2="6" />
-      <line x1="3" y1="10" x2="21" y2="10" />
-    </svg>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Step 1
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -113,19 +36,32 @@ function Step1({
   data,
   setData,
   onNavigate,
+  isDark,
 }: {
   data: RegisterData;
   setData: React.Dispatch<React.SetStateAction<RegisterData>>;
   onNavigate: (view: AuthView) => void;
+  isDark?: boolean;
 }) {
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
 
-  const inputCls =
-    "w-full h-[46px] rounded-full border border-[#E5E7EB] bg-[#F0F3F6] px-4 text-[14px] text-gray-900 placeholder:text-[#999999] outline-none focus:border-[#E9201E] focus:bg-white focus:ring-2 focus:ring-[#E9201E]/20 transition-all";
+  const inputCls = isDark
+    ? "w-full h-[46px] rounded-full border border-[#393939] bg-[#1F1F1F] px-4 text-[14px] text-white placeholder:text-[#6E6E6E] outline-none focus:border-[#E30000] focus:ring-2 focus:ring-[#E30000]/20 transition-all [&>option]:bg-[#1F1F1F] [&>option]:text-white"
+    : "w-full h-[46px] rounded-full border border-[#E5E7EB] bg-[#F0F3F6] px-4 text-[14px] text-gray-900 placeholder:text-[#999999] outline-none focus:border-[#E9201E] focus:bg-white focus:ring-2 focus:ring-[#E9201E]/20 transition-all";
 
-  const labelCls = "block text-[14px] font-medium text-gray-900 mb-2";
+  const labelCls = `block text-[14px] font-medium mb-2 ${isDark ? "text-white" : "text-gray-900"}`;
+
+  const roleOptions = isDark
+    ? [
+        { id: "seeker" as const, label: "Seeker (Perusahaan)" },
+        { id: "solver" as const, label: "Solver (Peserta)" },
+      ]
+    : [
+        { id: "solver" as const, label: "Solver (Peserta)" },
+        { id: "seeker" as const, label: "Seeker (Perusahaan)" },
+      ];
 
   function handleNext(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -177,43 +113,47 @@ function Step1({
     <>
       {/* Header */}
       <div className="flex flex-col items-center pt-6 pb-4 px-9 shrink-0">
-        <OpenNovaLogo className="mb-3" />
+        <OpenNovaLogo theme={isDark ? "dark" : "light"} className="mb-3" />
 
-        <h1 className="text-[26px] font-bold tracking-[-0.02em] leading-[1.15] text-gray-900 text-center mb-3">
+        <h1 className={`text-[26px] font-bold tracking-[-0.02em] leading-[1.15] text-center mb-3 ${
+          isDark ? "text-white" : "text-gray-900"
+        }`}>
           Daftar Akun Baru
         </h1>
 
         {/* Role toggle */}
-        <div className="flex items-center p-1 bg-[#F0F3F6] rounded-full w-full max-w-[320px]">
-          <button
-            type="button"
-            onClick={() => setData((prev) => ({ ...prev, role: "solver" }))}
-            className={[
-              "flex-1 h-9 rounded-full text-[13px] font-semibold transition-all",
-              data.role === "solver"
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-500 hover:text-gray-800",
-            ].join(" ")}
-          >
-            Solver (Peserta)
-          </button>
-          <button
-            type="button"
-            onClick={() => setData((prev) => ({ ...prev, role: "seeker" }))}
-            className={[
-              "flex-1 h-9 rounded-full text-[13px] font-semibold transition-all",
-              data.role === "seeker"
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-500 hover:text-gray-800",
-            ].join(" ")}
-          >
-            Seeker (Perusahaan)
-          </button>
+        <div
+          className={`flex items-center p-1 rounded-full w-full max-w-[320px] transition-colors ${
+            isDark ? "bg-[#141414] border border-[#303030]" : "bg-[#F0F3F6]"
+          }`}
+        >
+          {roleOptions.map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => setData((prev) => ({ ...prev, role: opt.id }))}
+              className={[
+                "flex-1 h-9 rounded-full text-[13px] font-semibold transition-all cursor-pointer",
+                data.role === opt.id
+                  ? isDark
+                    ? "bg-[#262626] text-white shadow-sm"
+                    : "bg-white text-gray-900 shadow-sm"
+                  : isDark
+                  ? "text-[#737373] hover:text-[#A4A4A4]"
+                  : "text-gray-500 hover:text-gray-800",
+              ].join(" ")}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Form */}
-      <form onSubmit={handleNext} className="px-9 pb-4 flex flex-col gap-3.5 overflow-y-auto max-h-[calc(100vh-220px)]">
+      <form
+        onSubmit={handleNext}
+        className="px-9 pb-4 flex flex-col gap-3.5 overflow-y-auto max-h-[calc(100vh-220px)] scrollbar-thin scrollbar-thumb-[#393939] scrollbar-track-transparent"
+      >
         {/* Seeker: Company Name & Type */}
         {data.role === "seeker" ? (
           <>
@@ -316,7 +256,7 @@ function Step1({
               onClick={() => setShowPass((prev) => !prev)}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A2A2A2] hover:text-gray-700 transition-colors"
             >
-              <EyeIcon open={showPass} />
+              {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
         </div>
@@ -341,7 +281,7 @@ function Step1({
               onClick={() => setShowConfirm((prev) => !prev)}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A2A2A2] hover:text-gray-700 transition-colors"
             >
-              <EyeIcon open={showConfirm} />
+              {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
         </div>
@@ -353,17 +293,17 @@ function Step1({
         <div className="pt-2 flex flex-col items-center gap-3">
           <button
             type="submit"
-            className="w-full h-[46px] rounded-full bg-[#E9201E] hover:bg-[#D91817] active:bg-[#B91413] text-white text-[15px] font-semibold transition-colors"
+            className="w-full h-[46px] rounded-full bg-[#E30000] hover:bg-[#CC0000] active:scale-[0.98] text-white text-[15px] font-semibold transition-all shadow-[0_4px_14px_rgba(227,0,0,0.3)] cursor-pointer"
           >
             Berikutnya
           </button>
 
-          <p className="text-[14px] text-[#7D7D7D]">
+          <p className={`text-[14px] ${isDark ? "text-[#A4A4A4]" : "text-[#7D7D7D]"}`}>
             Sudah punya akun?{" "}
             <button
               type="button"
               onClick={() => onNavigate("LOGIN")}
-              className="text-[#E9201E] hover:text-[#D91817] font-semibold transition-colors"
+              className="text-[#E30000] hover:underline font-semibold transition-colors cursor-pointer"
             >
               Masuk
             </button>
@@ -382,19 +322,22 @@ function Step2({
   data,
   setData,
   onNavigate,
+  isDark,
 }: {
   data: RegisterData;
   setData: React.Dispatch<React.SetStateAction<RegisterData>>;
   onNavigate: (view: AuthView) => void;
+  isDark?: boolean;
 }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const inputCls =
-    "w-full h-[46px] rounded-full border border-[#E5E7EB] bg-[#F0F3F6] px-4 text-[14px] text-gray-900 placeholder:text-[#999999] outline-none focus:border-[#E9201E] focus:bg-white focus:ring-2 focus:ring-[#E9201E]/20 transition-all";
+  const inputCls = isDark
+    ? "w-full h-[46px] rounded-full border border-[#393939] bg-[#1F1F1F] px-4 text-[14px] text-white placeholder:text-[#6E6E6E] outline-none focus:border-[#E30000] focus:ring-2 focus:ring-[#E30000]/20 transition-all"
+    : "w-full h-[46px] rounded-full border border-[#E5E7EB] bg-[#F0F3F6] px-4 text-[14px] text-gray-900 placeholder:text-[#999999] outline-none focus:border-[#E9201E] focus:bg-white focus:ring-2 focus:ring-[#E9201E]/20 transition-all";
 
-  const labelCls = "block text-[14px] font-medium text-gray-900 mb-2";
+  const labelCls = `block text-[14px] font-medium mb-2 ${isDark ? "text-white" : "text-gray-900"}`;
 
   async function handleRegister(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -514,15 +457,19 @@ function Step2({
     <>
       {/* Header */}
       <div className="flex flex-col items-center pt-6 pb-4 px-9 shrink-0">
-        <OpenNovaLogo className="mb-3" />
-        <h1 className="text-[26px] font-bold tracking-[-0.02em] leading-[1.15] text-gray-900 text-center">
+        <OpenNovaLogo theme={isDark ? "dark" : "light"} className="mb-3" />
+        <h1 className={`text-[26px] font-bold tracking-[-0.02em] leading-[1.15] text-center ${
+          isDark ? "text-white" : "text-gray-900"
+        }`}>
           {data.role === "seeker" ? "Daftar Sebagai Seeker" : "Daftar Sebagai Solver"}
         </h1>
       </div>
 
       {/* Success message */}
       {success && (
-        <div className="mx-9 mb-4 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-700">
+        <div className={`mx-9 mb-4 rounded-xl px-4 py-3 text-sm ${
+          isDark ? "bg-green-950/40 border border-green-800 text-green-300" : "bg-green-50 text-green-700"
+        }`}>
           Registrasi berhasil! Silakan masuk dengan akun kamu.
         </div>
       )}
@@ -558,10 +505,12 @@ function Step2({
                 type="date"
                 defaultValue={data.birthday}
                 required
-                className={`${inputCls} pr-12 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
+                className={`${inputCls} pr-12 ${isDark ? "[color-scheme:dark]" : ""} [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer`}
               />
-              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#A2A2A2]">
-                <CalendarIcon />
+              <span className={`pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 ${
+                isDark ? "text-[#737373]" : "text-[#A2A2A2]"
+              }`}>
+                <Calendar size={16} />
               </span>
             </div>
           </div>
@@ -571,7 +520,7 @@ function Step2({
         {data.role === "solver" && (
           <div>
             <label htmlFor="reg-institution" className={labelCls}>
-              Institusi / Universitas <span className="text-gray-400 font-normal">(opsional)</span>
+              Institusi / Universitas <span className={`font-normal ${isDark ? "text-[#737373]" : "text-gray-400"}`}>(opsional)</span>
             </label>
             <input
               id="reg-institution"
@@ -593,16 +542,16 @@ function Step2({
             type="button"
             onClick={() => onNavigate("REGISTER_1")}
             disabled={loading}
-            className="flex items-center gap-1.5 text-[15px] font-medium text-[#E9201E] hover:text-[#D91817] transition-colors min-h-[44px] disabled:opacity-50"
+            className="flex items-center gap-1.5 text-[15px] font-medium text-[#E30000] hover:text-[#CC0000] transition-colors min-h-[44px] disabled:opacity-50 cursor-pointer"
           >
-            <ArrowLeft />
+            <ArrowLeft size={16} />
             Kembali
           </button>
 
           <button
             type="submit"
             disabled={loading}
-            className="h-[46px] px-8 rounded-full bg-[#E9201E] hover:bg-[#D91817] active:bg-[#B91413] text-white text-[15px] font-semibold transition-colors disabled:opacity-50"
+            className="h-[46px] px-8 rounded-full bg-[#E30000] hover:bg-[#CC0000] active:scale-[0.98] text-white text-[15px] font-semibold transition-all disabled:opacity-50 shadow-[0_4px_14px_rgba(227,0,0,0.3)] cursor-pointer"
           >
             {loading ? "Mendaftarkan..." : "Daftar"}
           </button>
@@ -616,9 +565,9 @@ function Step2({
 // Register Flow
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function RegisterFlow({ view, onNavigate }: RegisterFlowProps) {
-  const [data, setData] = useState<RegisterData>({
-    role: "solver",
+export default function RegisterFlow({ view, onNavigate, isDark }: RegisterFlowProps) {
+  const [data, setData] = useState<RegisterData>(() => ({
+    role: isDark ? "seeker" : "solver",
     fullName: "",
     companyName: "",
     companyType: "Perusahaan Swasta",
@@ -628,11 +577,11 @@ export default function RegisterFlow({ view, onNavigate }: RegisterFlowProps) {
     phone: "",
     birthday: "",
     institution: "",
-  });
+  }));
 
   if (view === "REGISTER_2") {
-    return <Step2 data={data} setData={setData} onNavigate={onNavigate} />;
+    return <Step2 data={data} setData={setData} onNavigate={onNavigate} isDark={isDark} />;
   }
 
-  return <Step1 data={data} setData={setData} onNavigate={onNavigate} />;
+  return <Step1 data={data} setData={setData} onNavigate={onNavigate} isDark={isDark} />;
 }

@@ -19,8 +19,7 @@ import {
   Users,
   LogOut,
 } from "lucide-react";
-
-import { OpenNovaLogo } from "@/component/landing/Logo";
+import Image from "next/image";
 
 import { BsPeople } from "react-icons/bs";
 
@@ -160,7 +159,19 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
     <div className="flex flex-col h-full py-8 px-5">
       {/* Brand */}
       <div className="flex items-center justify-between mb-12">
-        <OpenNovaLogo />
+        <Link href="/solver" className="flex items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded-lg">
+          <Image
+            src="/icon.svg"
+            alt="OpenNova"
+            width={32}
+            height={32}
+            className="w-8 h-8 object-contain shrink-0"
+            priority
+          />
+          <span className="text-base font-bold tracking-tight text-gray-900">
+            opennova
+          </span>
+        </Link>
 
         {onClose && (
           <button
@@ -304,7 +315,19 @@ export default function DashboardSidebar() {
           <Menu size={20} />
         </button>
 
-        <OpenNovaLogo />
+        <Link href="/solver" className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded-lg">
+          <Image
+            src="/icon.svg"
+            alt="OpenNova"
+            width={28}
+            height={28}
+            className="w-7 h-7 object-contain shrink-0"
+            priority
+          />
+          <span className="text-base font-bold tracking-tight text-gray-900">
+            opennova
+          </span>
+        </Link>
       </div>
 
       {/* Mobile drawer */}

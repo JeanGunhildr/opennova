@@ -12,8 +12,8 @@ import {
   ChevronRight,
   Menu,
   X,
-  Layers,
 } from "lucide-react";
+import Image from "next/image";
 
 interface NavItem {
   label: string;
@@ -60,20 +60,19 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
     <div className="flex flex-col h-full py-6 px-[26px]">
       {/* Brand */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: "#E30000" }}
-          >
-            <Layers size={16} className="text-white" strokeWidth={2} />
-          </div>
-          <span
-            className="text-white font-medium"
-            style={{ fontSize: "22px", letterSpacing: "-0.01em" }}
-          >
+        <Link href="/seeker" className="flex items-center gap-2.5">
+          <Image
+            src="/icon.svg"
+            alt="OpenNova"
+            width={32}
+            height={32}
+            className="w-8 h-8 object-contain shrink-0"
+            priority
+          />
+          <span className="text-base font-bold tracking-tight text-white">
             opennova
           </span>
-        </div>
+        </Link>
         {onClose && (
           <button
             onClick={onClose}
@@ -248,7 +247,19 @@ export default function SeekerSidebar() {
         >
           <Menu size={20} />
         </button>
-        <span className="text-white font-semibold text-[18px]">opennova</span>
+        <Link href="/seeker" className="flex items-center gap-2">
+          <Image
+            src="/icon.svg"
+            alt="OpenNova"
+            width={28}
+            height={28}
+            className="w-7 h-7 object-contain shrink-0"
+            priority
+          />
+          <span className="text-base font-bold tracking-tight text-white">
+            opennova
+          </span>
+        </Link>
       </div>
 
       {/* Mobile drawer */}

@@ -2,64 +2,32 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { navLinks } from "@/lib/data/landing";
+import { ArrowRight, Menu, X } from "lucide-react";
 import { OpenNovaLogo } from "@/component/landing/Logo";
 import { useAuthModal } from "@/component/auth/AuthModalContext";
+import { useLandingMode } from "@/component/landing/LandingModeContext";
 
+const seekerNavLinks = [
+  { label: "Panduan",          href: "#panduan" },
+  { label: "Kategori Inovasi", href: "#kategori" },
+  { label: "Cerita Pengguna",  href: "#testimoni" },
+  { label: "Hubungi Kami",     href: "#kontak" },
+];
 
-// ── Arrow icon used in CTA button ────────────────────────
-function ArrowRight({ size = 14 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 14 14"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M3 7H11M11 7L8 4M11 7L8 10"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-// ── Hamburger / close icon ────────────────────────────────
-function MenuIcon({ open }: { open: boolean }) {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 18 18"
-      fill="none"
-      aria-hidden="true"
-    >
-      {open ? (
-        <path
-          d="M4 4L14 14M14 4L4 14"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        />
-      ) : (
-        <>
-          <line x1="2" y1="5"  x2="16" y2="5"  stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <line x1="2" y1="9"  x2="16" y2="9"  stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <line x1="2" y1="13" x2="16" y2="13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        </>
-      )}
-    </svg>
-  );
-}
+const solverNavLinks = [
+  { label: "Jelajah Challenge", href: "#challenge" },
+  { label: "Kategori",          href: "#kolaborasi" },
+  { label: "Tentang Kami",      href: "#insentif" },
+  { label: "Kontak",            href: "#kontak" },
+];
 
 // ─────────────────────────────────────────────────────────
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { open: openAuthModal } = useAuthModal();
+  const { isSeeker } = useLandingMode();
+
+  const activeLinks = isSeeker ? seekerNavLinks : solverNavLinks;
 
   return (
     <>
@@ -68,20 +36,34 @@ export default function Navbar() {
         aria-label="Navigasi utama"
         className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-4xl"
       >
-        <div className="flex items-center justify-between h-14 px-3 rounded-full bg-white/82 backdrop-blur-md border border-gray-200/70 shadow-[0_7px_25px_rgba(20,20,20,0.10)]">
+        <div
+          className={`flex items-center justify-between h-14 px-3 rounded-full backdrop-blur-md transition-colors duration-300 ${
+            isSeeker
+              ? "bg-[#191919]/95 border border-[#2E2E2E] shadow-[0_7px_25px_rgba(0,0,0,0.5)]"
+              : "bg-white/82 border border-gray-200/70 shadow-[0_7px_25px_rgba(20,20,20,0.10)]"
+          }`}
+        >
 
           {/* Logo */}
-          <Link href="/" aria-label="OpenNova beranda" className="flex-shrink-0 rounded-full focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2">
-            <OpenNovaLogo />
+          <Link
+            href="/"
+            aria-label="OpenNova beranda"
+            className="flex-shrink-0 rounded-full focus-visible:ring-2 focus-visible:ring-[#E30000] focus-visible:ring-offset-2"
+          >
+            <OpenNovaLogo theme={isSeeker ? "dark" : "light"} />
           </Link>
 
           {/* Desktop nav links */}
           <ul className="hidden md:flex items-center gap-0.5" role="list">
-            {navLinks.map((link) => (
+            {activeLinks.map((link) => (
               <li key={link.href}>
                 <Link
                   href={link.href}
-                  className="block px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 rounded-full transition-colors duration-150"
+                  className={`block px-3 py-2 text-sm rounded-full transition-colors duration-150 ${
+                    isSeeker
+                      ? "text-[#A4A4A4] hover:text-white hover:bg-[#262626]"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/80"
+                  }`}
                 >
                   {link.label}
                 </Link>
@@ -90,15 +72,27 @@ export default function Navbar() {
           </ul>
 
           {/* Desktop CTA */}
-          <button
-            type="button"
-            id="nav-cta-daftar"
-            onClick={openAuthModal}
-            className="hidden md:flex items-center gap-1.5 bg-gray-900 text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-gray-800 active:scale-[0.97] transition-all duration-150"
-          >
-            Masuk
-            <ArrowRight />
-          </button>
+          {isSeeker ? (
+            <button
+              type="button"
+              id="nav-cta-seeker"
+              onClick={() => openAuthModal("LOGIN")}
+              className="hidden md:inline-flex items-center gap-1.5 rounded-full bg-[#E30000] hover:bg-[#CC0000] text-white text-xs font-semibold px-4 h-[34px] transition-colors active:scale-[0.97] cursor-pointer shadow-md"
+            >
+              Masuk
+              <ArrowRight size={13} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              id="nav-cta-daftar"
+              onClick={() => openAuthModal("LOGIN")}
+              className="hidden md:flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-full active:scale-[0.97] transition-all duration-150 cursor-pointer bg-gray-900 text-white hover:bg-gray-800"
+            >
+              Masuk
+              <ArrowRight size={14} />
+            </button>
+          )}
 
           {/* Mobile toggle */}
           <button
@@ -107,9 +101,13 @@ export default function Navbar() {
             aria-expanded={mobileOpen}
             aria-controls="mobile-menu"
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden flex items-center justify-center w-9 h-9 rounded-full text-gray-700 hover:bg-gray-100 transition-colors"
+            className={`md:hidden flex items-center justify-center w-9 h-9 rounded-full transition-colors ${
+              isSeeker
+                ? "text-gray-200 hover:bg-[#262626]"
+                : "text-gray-700 hover:bg-gray-100"
+            }`}
           >
-            <MenuIcon open={mobileOpen} />
+            {mobileOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
         </div>
       </nav>
@@ -125,20 +123,30 @@ export default function Navbar() {
         >
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/25 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
             aria-hidden="true"
           />
 
           {/* Drawer panel */}
-          <div className="absolute top-[72px] left-4 right-4 bg-white rounded-2xl shadow-[0_10px_35px_rgba(20,20,20,0.14)] border border-gray-200 p-3">
+          <div
+            className={`absolute top-[72px] left-4 right-4 rounded-2xl p-3 border shadow-[0_10px_35px_rgba(20,20,20,0.25)] transition-colors duration-300 ${
+              isSeeker
+                ? "bg-[#191919] border-[#2E2E2E] text-white"
+                : "bg-white border-gray-200 text-gray-900"
+            }`}
+          >
             <ul className="space-y-0.5" role="list">
-              {navLinks.map((link) => (
+              {activeLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
                     onClick={() => setMobileOpen(false)}
-                    className="block px-4 py-3 text-[15px] text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-colors"
+                    className={`block px-4 py-3 text-[15px] rounded-xl transition-colors ${
+                      isSeeker
+                        ? "text-[#A4A4A4] hover:text-white hover:bg-[#262626]"
+                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                    }`}
                   >
                     {link.label}
                   </Link>
@@ -146,14 +154,18 @@ export default function Navbar() {
               ))}
             </ul>
 
-            <div className="mt-3 pt-3 border-t border-gray-100">
+            <div className={`mt-3 pt-3 border-t ${isSeeker ? "border-[#2E2E2E]" : "border-gray-100"}`}>
               <button
                 type="button"
-                onClick={() => { setMobileOpen(false); openAuthModal(); }}
-                className="flex w-full items-center justify-center gap-2 bg-gray-900 text-white font-semibold text-sm py-3 rounded-full hover:bg-gray-800 transition-colors"
+                onClick={() => { setMobileOpen(false); openAuthModal("REGISTER_1"); }}
+                className={`flex w-full items-center justify-center gap-2 font-semibold text-sm py-3 rounded-full transition-colors cursor-pointer ${
+                  isSeeker
+                    ? "bg-[#E30000] hover:bg-[#CC0000] text-white shadow-md"
+                    : "bg-gray-900 text-white hover:bg-gray-800"
+                }`}
               >
-                Daftar sekarang
-                <ArrowRight />
+                {isSeeker ? "Daftar sebagai Seeker" : "Daftar sekarang"}
+                <ArrowRight size={14} />
               </button>
             </div>
           </div>
