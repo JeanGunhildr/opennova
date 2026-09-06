@@ -45,6 +45,13 @@ function HeroTag({ status }: { status: HeroStatus }) {
       </span>
     );
   }
+  if (status.style === "danger") {
+    return (
+      <span className="inline-flex items-center h-7 px-3 rounded-full bg-red-100 text-[#E30000] text-[12px] font-semibold flex-shrink-0 shadow-2xs">
+        {status.label}
+      </span>
+    );
+  }
   return (
     <span className="inline-flex items-center h-7 px-3 rounded-full bg-white text-primary-500 text-[12px] font-semibold flex-shrink-0 shadow-2xs">
       {status.label}

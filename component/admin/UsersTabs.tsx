@@ -4,11 +4,16 @@ import { useState } from "react";
 import { Building2, Users } from "lucide-react";
 import SeekerTable from "./SeekerTable";
 import SolverTable from "./SolverTable";
-import { seekers, solvers } from "@/lib/data/admin";
+import type { SeekerRow, SolverRow } from "@/lib/data/admin";
 
 type Tab = "seeker" | "solver";
 
-export default function UsersTabs() {
+interface UsersTabsProps {
+  seekers: SeekerRow[];
+  solvers: SolverRow[];
+}
+
+export default function UsersTabs({ seekers, solvers }: UsersTabsProps) {
   const [tab, setTab] = useState<Tab>("seeker");
 
   return (
@@ -17,7 +22,7 @@ export default function UsersTabs() {
         <button
           onClick={() => setTab("seeker")}
           className={[
-            "flex items-center gap-2 h-10 px-4 rounded-full text-[14px] font-semibold transition-all",
+            "flex items-center gap-2 h-10 px-4 rounded-full text-[14px] font-semibold transition-all cursor-pointer",
             tab === "seeker"
               ? "bg-white text-gray-900 shadow-sm"
               : "text-gray-500 hover:text-gray-700",
@@ -28,16 +33,17 @@ export default function UsersTabs() {
           <span
             className={[
               "text-[11px] font-bold rounded-full px-2 py-0.5",
-              tab === "seeker" ? "bg-primary-50 text-primary-500" : "bg-gray-200 text-gray-500",
+              tab === "seeker" ? "bg-[#E30000]/10 text-[#E30000]" : "bg-gray-200 text-gray-500",
             ].join(" ")}
           >
             {seekers.length}
           </span>
         </button>
+
         <button
           onClick={() => setTab("solver")}
           className={[
-            "flex items-center gap-2 h-10 px-4 rounded-full text-[14px] font-semibold transition-all",
+            "flex items-center gap-2 h-10 px-4 rounded-full text-[14px] font-semibold transition-all cursor-pointer",
             tab === "solver"
               ? "bg-white text-gray-900 shadow-sm"
               : "text-gray-500 hover:text-gray-700",
@@ -48,7 +54,7 @@ export default function UsersTabs() {
           <span
             className={[
               "text-[11px] font-bold rounded-full px-2 py-0.5",
-              tab === "solver" ? "bg-primary-50 text-primary-500" : "bg-gray-200 text-gray-500",
+              tab === "solver" ? "bg-[#E30000]/10 text-[#E30000]" : "bg-gray-200 text-gray-500",
             ].join(" ")}
           >
             {solvers.length}
@@ -56,7 +62,11 @@ export default function UsersTabs() {
         </button>
       </div>
 
-      {tab === "seeker" ? <SeekerTable /> : <SolverTable />}
+      {tab === "seeker" ? (
+        <SeekerTable seekers={seekers} />
+      ) : (
+        <SolverTable solvers={solvers} />
+      )}
     </div>
   );
 }

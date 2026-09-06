@@ -51,6 +51,14 @@ export function activeChallengeStatusTone(
       return "amber";
     case "Pitching Final":
       return "green";
+    case "Menunggu Persetujuan":
+      return "amber";
+    case "Ditolak":
+    case "Takedown":
+    case "taken_down":
+      return "red";
+    case "Selesai":
+      return "gray";
     default:
       return "gray";
   }

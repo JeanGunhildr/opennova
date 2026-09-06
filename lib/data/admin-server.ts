@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import type {
   ActiveChallengeRow,
   ActiveChallengeStatus,
+  SeekerRow,
+  SolverRow,
 } from "./admin";
 
 export interface AdminChallengeDetail {
@@ -60,6 +62,10 @@ export function mapChallengeStatus(status: string): ActiveChallengeStatus {
 
     case "rejected":
       return "Ditolak";
+
+    case "taken_down":
+    case "takedown":
+      return "Takedown";
 
     default:
       return status as ActiveChallengeStatus;
@@ -278,3 +284,286 @@ export async function getAdminChallengeById(
 
 // Backward compatibility alias for any component importing getAdminActiveChallenges
 export const getAdminActiveChallenges = getAdminChallenges;
+
+/**
+ * Fetch dynamic list of all Seekers from Supabase DB for Admin.
+ */
+export async function getAdminSeekers(): Promise<SeekerRow[]> {
+  try {
+    const supabase = await createClient();
+
+    // 1. Fetch profiles with role = 'seeker' along with seeker_profiles
+    const { data: seekerProfilesData, error: profilesError } = await supabase
+      .from("profiles")
+      .select(`
+        id,
+        full_name,
+        phone,
+        created_at,
+        seeker_profiles (
+          company_name,
+          representative_name,
+          company_type,
+          company_description,
+          website,
+          legal_document_path
+        )
+      `)
+      .eq("role", "seeker")
+      .order("created_at", { ascending: false });
+
+    if (profilesError) {
+      console.error("getAdminSeekers query error:", profilesError);
+      return [];
+    }
+
+    // 2. Fetch challenge counts grouped by seeker_id
+    const { data: challengesData, error: chErr } = await supabase
+      .from("challenges")
+      .select("seeker_id");
+
+    const challengeCountMap = new Map<string, number>();
+    if (!chErr && challengesData) {
+      challengesData.forEach((ch: any) => {
+        if (ch.seeker_id) {
+          challengeCountMap.set(
+            ch.seeker_id,
+            (challengeCountMap.get(ch.seeker_id) || 0) + 1
+          );
+        }
+      });
+    }
+
+    // 3. Fetch Auth Users for email mapping
+    let emailMap = new Map<string, string>();
+    try {
+      const { data: authUsersData } = await supabase.auth.admin.listUsers();
+      if (authUsersData?.users) {
+        authUsersData.users.forEach((u) => {
+          if (u.id && u.email) emailMap.set(u.id, u.email);
+        });
+      }
+    } catch (e) {
+      console.log("auth.admin.listUsers not available or failed:", e);
+    }
+
+    return (seekerProfilesData ?? []).map((p: any) => {
+      const seekerExtra = Array.isArray(p.seeker_profiles)
+        ? p.seeker_profiles[0]
+        : p.seeker_profiles;
+
+      const orgName =
+        seekerExtra?.company_name || p.full_name || "Perusahaan / Organisasi";
+      const contactPerson =
+        seekerExtra?.representative_name || p.full_name || "Kontak Person";
+      const orgType = seekerExtra?.company_type || "Perusahaan Swasta";
+      const website = seekerExtra?.website || "";
+      const officeAddress = website || seekerExtra?.company_description || "—";
+      const email =
+        emailMap.get(p.id) ||
+        `${(p.full_name || "seeker")
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, ".")}@opennova.id`;
+
+      return {
+        id: p.id,
+        orgName,
+        email,
+        orgType,
+        contactPerson,
+        officeAddress,
+        phone: p.phone || "—",
+        companyDescription: seekerExtra?.company_description || null,
+        website: seekerExtra?.website || null,
+        legalDocumentPath: seekerExtra?.legal_document_path || null,
+        challengesCreated: challengeCountMap.get(p.id) || 0,
+        createdAt: p.created_at || new Date().toISOString(),
+      };
+    });
+  } catch (err) {
+    console.error("getAdminSeekers exception:", err);
+    return [];
+  }
+}
+
+/**
+ * Fetch dynamic list of all Solvers from Supabase DB for Admin.
+ */
+/**
+ * Fetch dynamic list of all Solvers from Supabase DB for Admin.
+ */
+export async function getAdminSolvers(): Promise<SolverRow[]> {
+  try {
+    const supabase = await createClient();
+
+    // 1. Fetch all solver profiles
+    const { data: solverProfilesData, error: profilesError } =
+      await supabase
+        .from("profiles")
+        .select(`
+          id,
+          full_name,
+          phone,
+          created_at,
+          solver_profiles (
+            bio,
+            institution
+          )
+        `)
+        .eq("role", "solver")
+        .order("created_at", { ascending: false });
+
+    if (profilesError) {
+      console.error("getAdminSolvers profiles error:", {
+        message: profilesError.message,
+        code: profilesError.code,
+        details: profilesError.details,
+        hint: profilesError.hint,
+      });
+
+      return [];
+    }
+
+    // 2. Fetch direct challenge entries
+    const {
+      data: directEntries,
+      error: directEntriesError,
+    } = await supabase
+      .from("challenge_entries")
+      .select("solver_id, challenge_id")
+      .not("solver_id", "is", null);
+
+    if (directEntriesError) {
+      console.error("Admin direct entries error:", {
+        message: directEntriesError.message,
+        code: directEntriesError.code,
+        details: directEntriesError.details,
+        hint: directEntriesError.hint,
+      });
+    }
+
+    // 3. Fetch team challenge entries
+    const {
+      data: memberEntries,
+      error: memberEntriesError,
+    } = await supabase
+      .from("challenge_entry_members")
+      .select(`
+        user_id,
+        challenge_entries (
+          challenge_id
+        )
+      `);
+
+    if (memberEntriesError) {
+      console.error("Admin member entries error:", {
+        message: memberEntriesError.message,
+        code: memberEntriesError.code,
+        details: memberEntriesError.details,
+        hint: memberEntriesError.hint,
+      });
+    }
+
+    // 4. Build unique challenge count per solver
+    const joinedChallengeMap = new Map<string, Set<string>>();
+
+    // Direct solver
+    (directEntries ?? []).forEach((entry: any) => {
+      if (!entry.solver_id || !entry.challenge_id) return;
+
+      if (!joinedChallengeMap.has(entry.solver_id)) {
+        joinedChallengeMap.set(entry.solver_id, new Set());
+      }
+
+      joinedChallengeMap.get(entry.solver_id)!.add(entry.challenge_id);
+    });
+
+    // Team member solver
+    (memberEntries ?? []).forEach((entry: any) => {
+      const userId = entry.user_id;
+      const challengeId =
+        entry.challenge_entries?.challenge_id;
+
+      if (!userId || !challengeId) return;
+
+      if (!joinedChallengeMap.has(userId)) {
+        joinedChallengeMap.set(userId, new Set());
+      }
+
+      joinedChallengeMap.get(userId)!.add(challengeId);
+    });
+
+    console.log(
+      "Admin direct entries:",
+      directEntries?.length ?? 0,
+    );
+
+    console.log(
+      "Admin team member entries:",
+      memberEntries?.length ?? 0,
+    );
+
+    console.log(
+      "Admin solver challenge map:",
+      Array.from(joinedChallengeMap.entries()).map(
+        ([solverId, challenges]) => ({
+          solverId,
+          challengeCount: challenges.size,
+          challengeIds: Array.from(challenges),
+        }),
+      ),
+    );
+
+    // 5. Fetch Auth Users for email mapping
+    const emailMap = new Map<string, string>();
+
+    try {
+      const { data: authUsersData } =
+        await supabase.auth.admin.listUsers();
+
+      if (authUsersData?.users) {
+        authUsersData.users.forEach((u) => {
+          if (u.id && u.email) {
+            emailMap.set(u.id, u.email);
+          }
+        });
+      }
+    } catch (e) {
+      console.log(
+        "auth.admin.listUsers not available or failed:",
+        e,
+      );
+    }
+
+    // 6. Map final solver data
+    return (solverProfilesData ?? []).map((p: any) => {
+      const solverExtra = Array.isArray(p.solver_profiles)
+        ? p.solver_profiles[0]
+        : p.solver_profiles;
+
+      const challengeSet = joinedChallengeMap.get(p.id);
+
+      return {
+        id: p.id,
+        fullName: p.full_name || "Solver",
+        email:
+          emailMap.get(p.id) ||
+          `${(p.full_name || "solver")
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, ".")}@opennova.id`,
+        whatsapp: p.phone || "—",
+        address: solverExtra?.institution || "—",
+        bio: solverExtra?.bio || null,
+        institution: solverExtra?.institution || null,
+        birthday: p.birthday || null,
+        challengesJoined: challengeSet
+          ? challengeSet.size
+          : 0,
+        createdAt: p.created_at || new Date().toISOString(),
+      };
+    });
+  } catch (err) {
+    console.error("getAdminSolvers exception:", err);
+    return [];
+  }
+}

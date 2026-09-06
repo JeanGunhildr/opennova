@@ -14,6 +14,7 @@ export type ActiveChallengeStatus =
   | "Menunggu Persetujuan"
   | "Selesai"
   | "Ditolak"
+  | "Takedown"
   | string;
 
 export interface ActiveChallengeRow {
@@ -45,7 +46,12 @@ export interface SeekerRow {
   orgType: string;
   contactPerson: string;
   officeAddress: string;
+  phone?: string;
+  companyDescription?: string | null;
+  website?: string | null;
+  legalDocumentPath?: string | null;
   challengesCreated: number;
+  createdAt?: string;
 }
 
 export interface SolverRow {
@@ -54,7 +60,11 @@ export interface SolverRow {
   email: string;
   whatsapp: string;
   address: string;
+  bio?: string | null;
+  institution?: string | null;
+  birthday?: string | null;
   challengesJoined: number;
+  createdAt?: string;
 }
 
 export interface CertificateAuthorizationRow {
@@ -88,12 +98,19 @@ export function formatRupiah(value: number): string {
   }).format(value);
 }
 
-export function formatDateID(iso: string): string {
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(iso));
+export function formatDateID(iso?: string | null): string {
+  if (!iso || typeof iso !== "string") return "—";
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "—";
+    return new Intl.DateTimeFormat("id-ID", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    }).format(d);
+  } catch {
+    return "—";
+  }
 }
 
 export function isSpecialCollab(rewardAmount: number): boolean {
