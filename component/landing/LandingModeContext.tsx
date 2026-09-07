@@ -20,7 +20,7 @@ interface LandingModeContextValue {
 const LandingModeContext = createContext<LandingModeContextValue | null>(null);
 
 export function LandingModeProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState] = useState<LandingMode>("seeker");
+  const [mode, setModeState] = useState<LandingMode>("solver");
 
   const setMode = useCallback((newMode: LandingMode) => {
     setModeState(newMode);
@@ -43,8 +43,8 @@ export function useLandingMode(): LandingModeContextValue {
   const ctx = useContext(LandingModeContext);
   if (!ctx) {
     return {
-      mode: "seeker",
-      isSeeker: true,
+      mode: "solver",
+      isSeeker: false,
       setMode: () => {},
       toggleMode: () => {},
     };
