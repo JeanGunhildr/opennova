@@ -479,7 +479,7 @@ pnpm lint
 ---
 
 #### Untuk Solver
-1. **Login / Masuk**: Masuk menggunakan email: `solver123@gmail.com` dan password: `solver123`.
+1. **Login / Masuk**: Masuk menggunakan email: `user123@gmail.com` dan password: `user123`.
 2. **Dashboard Solver**: Akses `/solver` untuk menjelajah challenge yang tersedia dan melihat rekomendasi tantangan.
 3. **Detail Challenge**: Akses `/solver/challenge/[id]` untuk melihat deskripsi, ketentuan, kriteria, linimasa, ruang diskusi, serta melakukan pendaftaran dan pengumpulan submission.
 4. **Ruang Kerja**: Akses `/solver/workspace` untuk mengelola progres challenge yang sedang diikuti.
