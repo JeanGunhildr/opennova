@@ -470,42 +470,44 @@ pnpm start
 pnpm lint
 ```
 
-### User Guide (Berdasarkan Peran)
+### User Guide
 
-#### 1. Peran Seeker (Perusahaan / Organisasi)
+#### Untuk Pengguna Umum
 
-1. **Pendaftaran Akun:** Akses landing page, buka modal auth, dan pilih peran **Seeker (Perusahaan)**.
-2. **Pembuatan Challenge Baru (`/seeker/challenges/new`):**
-   - **Langkah 1:** Isi judul, kategori bidang inovasi, dan deskripsi latar belakang masalah.
-   - **Langkah 2:** Tentukan tujuan, persyaratan teknis, dan timeline pengerjaan.
-   - **Langkah 3:** Konfigurasi kriteria penjurian ahli dan kriteria pitching final beserta bobot nilai.
-   - **Langkah 4:** Tentukan total prize pool, pilih klausul hak cipta (Transfer Penuh / Lisensi Non-Eksklusif), dan konfirmasi simulasi pembayaran.
-3. **Pengelolaan & Penjurian (`/seeker/challenges/[id]/manage`):**
-   - **Fase 1 (Challenge Dibuka):** Memantau jumlah solver yang bergabung dan merespons pertanyaan di tab Diskusi.
-   - **Fase 2 (Penjurian Ahli):** Memeriksa link submisi dokumen solusi Google Drive dan memberikan penilaian skor 0–100 pada kriteria ahli.
-   - **Fase 3 (Pitching Final):** Menilai peserta terpilih pada sesi presentasi langsung.
-   - **Fase 4 (Pengumuman Pemenang):** Mengumumkan pemenang juara 1, 2, 3 secara transparan.
+1. **Registrasi/Login**: Akses halaman utama OpenNova melalui `/`. Pengguna dapat memilih peran sebagai **Solver** atau **Seeker**, kemudian melakukan registrasi atau login melalui modal autentikasi.
 
-#### 2. Peran Solver (Inovator / Mahasiswa / Profesional)
+---
 
-1. **Pendaftaran Akun:** Buka landing page dan daftar dengan peran **Solver (Peserta)**.
-2. **Eksplorasi Challenge (`/solver`):** Telusuri katalog tantangan berdasarkan industri, total hadiah, dan sisa waktu pengerjaan.
-3. **Manajemen Tim (`/solver/team`):**
-   - Buat tim baru untuk mendapatkan kode unik (*join code*).
-   - Bagikan kode kepada rekan tim untuk bergabung bersama.
-4. **Pendaftaran & Pengerjaan (`/solver/challenge/[id]`):**
-   - Masuk ke detail tantangan, baca ringkasan brief, lalu klik tombol registrasi (pilih opsi Individu atau Tim).
-5. **Pengumpulan Solusi (`/solver/workspace`):**
-   - Akses tab challenge aktif di ruang kerja.
-   - Masukkan link URL Google Drive berisi proposal/prototipe solusi sebelum batas deadline.
-6. **Perolehan & Sertifikat (`/solver/earnings`):**
-   - Pantau saldo kemenangan dan unduh sertifikat resmi berformat PDF.
+#### Untuk Solver
+1. **Login / Masuk**: Masuk menggunakan email: `solver123@gmail.com` dan password: `solver123`.
+2. **Dashboard Solver**: Akses `/solver` untuk menjelajah challenge yang tersedia dan melihat rekomendasi tantangan.
+3. **Detail Challenge**: Akses `/solver/challenge/[id]` untuk melihat deskripsi, ketentuan, kriteria, linimasa, ruang diskusi, serta melakukan pendaftaran dan pengumpulan submission.
+4. **Ruang Kerja**: Akses `/solver/workspace` untuk mengelola progres challenge yang sedang diikuti.
+5. **Tim**: Akses `/solver/team` untuk mengelola anggota tim dan kolaborasi.
+6. **Perolehan**: Akses `/solver/perolehan` untuk melihat hadiah, sertifikat, dan saldo reward.
+7. **Notifikasi**: Akses `/solver/notifications` untuk melihat aktivitas dan status submission.
 
-#### 3. Peran Admin (Backoffice)
+---
 
-1. **Login Admin (`/admin/login`):** Masuk menggunakan kredensial akun administrator.
-2. **Moderasi Tantangan (`/admin/challenges`):** Meninjau challenge baru yang diajukan Seeker, memeriksa kepatuhan hak cipta, dan menyetujui (*Approve*) atau menolak (*Reject*).
-3. **Penerbitan Sertifikat (`/admin/certificates`):** Verifikasi keaslian pemenang dan menerbitkan dokumen pengakuan prestasi.
+#### Untuk Seeker
+
+1. **Login / Masuk**: Masuk menggunakan email: `seeker123@gmail.com` dan password: `seeker123`.
+2. **Dashboard Seeker**: Akses `/seeker` untuk melihat analitik, statistik peserta, dan aktivitas challenge.
+3. **Challenge Anda**: Akses `/seeker/challenges` untuk melihat dan mengelola seluruh challenge yang dibuat.
+4. **Buat Challenge**: Akses `/seeker/challenges/new` untuk membuat challenge baru, menentukan kriteria dual-tahap, serta mengatur pembayaran/escrow.
+5. **Kelola Challenge**: Akses `/seeker/challenges/[id]` untuk mengelola penilaian, pemenang, diskusi, pengaturan, dan pembatalan challenge.
+6. **Legal & Dokumen**: Akses `/seeker/legal` untuk mengatur pengalihan hak cipta dan mengunduh draf kesepakatan.
+7. **Notifikasi**: Akses `/seeker/notifications` untuk melihat pengajuan submission dan interaksi dari Solver.
+
+---
+
+#### Untuk Admin
+
+1. **Login / Masuk**: Masuk menggunakan email: `admin@gmail.com` dan password: `admin123`.
+2. **Akses Admin Panel**: Akses `/admin` untuk membuka dashboard administrasi dan memantau sistem OpenNova.
+3. **Moderasi Challenge**: Akses `/admin/challenges` untuk memoderasi dan memvalidasi challenge sebelum dipublikasikan.
+4. **Manajemen Pengguna**: Akses `/admin/users` untuk mengelola pengguna dan melakukan verifikasi.
+5. **Manajemen Escrow**: Akses `/admin/escrow` untuk mengelola pembayaran dan pencairan dana escrow.
 
 ---
 
