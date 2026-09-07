@@ -143,7 +143,7 @@ export default function Footer() {
           }`}
         >
           <span>© 2026 Opennova. Seluruh hak cipta dilindungi.</span>
-          <span>Dibuat untuk ekosistem open innovation Indonesia.</span>
+          <span>Dibuat untuk ekosistem inovasi terbuka Indonesia.</span>
         </div>
       </div>
     </footer>

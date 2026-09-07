@@ -8,10 +8,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/supabase/profile";
 
 export const metadata: Metadata = {
-  title: "OpenNova — Platform Open Innovation Nomor 1 di Indonesia",
+  title: "Opennova — Platform Inovasi Terbuka di Indonesia",
 
   description:
-    "OpenNova menghubungkan solver terbaik Indonesia dengan tantangan nyata dari perusahaan-perusahaan terkemuka. Temukan challenge, kirim solusi inovatif, dan raih hadiah hingga ratusan juta rupiah.",
+    "Opennova menghubungkan solver terbaik Indonesia dengan tantangan nyata dari perusahaan-perusahaan terkemuka. Temukan challenge, kirim solusi inovatif, dan raih hadiah hingga ratusan juta rupiah.",
 
   keywords: [
     "inovasi",
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   ],
 
   openGraph: {
-    title: "OpenNova — Platform Inovasi Terbuka",
+    title: "Opennova — Platform Inovasi Terbuka",
 
     description:
       "Bergabunglah dengan ribuan solver Indonesia dan selesaikan tantangan nyata dari perusahaan-perusahaan terkemuka.",

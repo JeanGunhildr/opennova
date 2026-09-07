@@ -474,7 +474,7 @@ pnpm lint
 
 #### Untuk Pengguna Umum
 
-1. **Registrasi/Login**: Akses halaman utama OpenNova melalui `/`. Pengguna dapat memilih peran sebagai **Solver** atau **Seeker**, kemudian melakukan registrasi atau login melalui modal autentikasi.
+1. **Registrasi/Login**: Akses halaman utama Opennova melalui `/`. Pengguna dapat memilih peran sebagai **Solver** atau **Seeker**, kemudian melakukan registrasi atau login melalui modal autentikasi.
 
 ---
 
@@ -504,7 +504,7 @@ pnpm lint
 #### Untuk Admin
 
 1. **Login / Masuk**: Masuk menggunakan email: `admin@gmail.com` dan password: `admin123`.
-2. **Akses Admin Panel**: Akses `/admin` untuk membuka dashboard administrasi dan memantau sistem OpenNova.
+2. **Akses Admin Panel**: Akses `/admin` untuk membuka dashboard administrasi dan memantau sistem Opennova.
 3. **Moderasi Challenge**: Akses `/admin/challenges` untuk memoderasi dan memvalidasi challenge sebelum dipublikasikan.
 4. **Manajemen Pengguna**: Akses `/admin/users` untuk mengelola pengguna dan melakukan verifikasi.
 5. **Manajemen Escrow**: Akses `/admin/escrow` untuk mengelola pembayaran dan pencairan dana escrow.
@@ -513,7 +513,7 @@ pnpm lint
 
 ## 📚 API Documentation
 
-Platform OpenNova mengadopsi arsitektur **Next.js Server Actions** (`"use server"`) sebagai antarmuka API backend terpusat di `lib/actions/`. Semua mutasi data diverifikasi menggunakan session cookie Supabase secara aman.
+Platform Opennova mengadopsi arsitektur **Next.js Server Actions** (`"use server"`) sebagai antarmuka API backend terpusat di `lib/actions/`. Semua mutasi data diverifikasi menggunakan session cookie Supabase secara aman.
 
 ### 1. Challenge & Submission Management (`lib/actions/challenge.ts`)
 

@@ -290,7 +290,7 @@ export default function AdminLoginForm() {
       {/* Footer */}
       <div className="px-9 pb-8 pt-1 flex justify-center">
         <p className="text-[13px] text-gray-400 text-center">
-          Halaman ini khusus untuk Admin OpenNova. Hubungi tim IT jika
+          Halaman ini khusus untuk Admin Opennova. Hubungi tim IT jika
           Anda mengalami kendala akses.
         </p>
       </div>

@@ -52,7 +52,7 @@ export default function Hero({ onOpenAuth }: HeroProps) {
             }`}
           >
             <i className="w-1.5 h-1.5 rounded-full bg-[#E30000] shadow-[0_0_12px_rgba(227,0,0,0.8)] inline-block" />
-            Platform Open Innovation Indonesia
+            Platform Inovasi Terbuka di Indonesia
           </span>
         </div>
 

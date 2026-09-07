@@ -233,14 +233,12 @@ export default function ScienceCanvas({ mode = "solver" }: ScienceCanvasProps) {
             isDark ? "text-[#444851]" : "text-[#c1c4ca]"
           }`}
         >
-          OPEN INNOVATION / 01
         </span>
         <span
           className={`absolute right-[8%] top-[42%] transition-colors duration-300 ${
             isDark ? "text-[#444851]" : "text-[#c1c4ca]"
           }`}
         >
-          IDEA → SOLUTION
         </span>
         <span
           className={`absolute left-[12%] bottom-[25%] transition-colors duration-300 ${

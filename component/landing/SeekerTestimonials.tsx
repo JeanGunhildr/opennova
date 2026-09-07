@@ -12,7 +12,7 @@ interface Testimonial {
 const TESTIMONIALS: Testimonial[] = [
   {
     quote:
-      "Melalui OpenNova, kami berhasil mendapatkan 40+ proposal solusi AI untuk infrastruktur optik hanya dalam 3 minggu. Kualitas solusinya melampaui ekspektasi R&D internal kami.",
+      "Melalui Opennova, kami berhasil mendapatkan 40+ proposal solusi AI untuk infrastruktur optik hanya dalam 3 minggu. Kualitas solusinya melampaui ekspektasi R&D internal kami.",
     name: "Budi Santoso",
     role: "VP Technology & Innovation, Telco & Infrastruktur",
     initials: "BS",

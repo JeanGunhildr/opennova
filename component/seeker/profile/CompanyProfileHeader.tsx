@@ -15,7 +15,7 @@
         Profil Perusahaan
       </h1>
       <p className="text-[15px] leading-[1.5] max-w-[800px]" style={{ color: "#A4A4A4" }}>
-        Kelola informasi resmi perusahaan atau organisasi yang digunakan pada challenge dan komunikasi OpenNova.
+        Kelola informasi resmi perusahaan atau organisasi yang digunakan pada challenge dan komunikasi Opennova.
       </p>
     </div>
   );

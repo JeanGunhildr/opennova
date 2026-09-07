@@ -94,7 +94,7 @@ export default function ChallengeHero({
             <img src={thumbnailPath} alt={title} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-primary-600/40 via-red-950/60 to-black/70 flex flex-col items-center justify-center text-white p-3 text-center">
-              <span className="text-[14px] font-bold tracking-tight text-white/90">OpenNova</span>
+              <span className="text-[14px] font-bold tracking-tight text-white/90">Opennova</span>
               <span className="text-[11px] text-white/60 mt-0.5">Innovation Challenge</span>
             </div>
           )}
