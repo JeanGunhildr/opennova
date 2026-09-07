@@ -9,6 +9,8 @@ import PopupToast, {
   type ToastNotification,
 } from "@/component/ui/PopupToast";
 
+import { createClient } from "@/lib/supabase/client";
+
 export default function AdminLoginForm() {
   const router = useRouter();
 
@@ -50,18 +52,20 @@ export default function AdminLoginForm() {
     }
 
     try {
-      // ── 2. Kirim ke API route /admin/login ──────────────────
-      const res = await fetch("/admin/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const supabase = createClient();
 
-      const json = await res.json();
+      // ── 2. Login ke Supabase Auth ───────────────────────────
+      const { data: authData, error: authError } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-      if (!res.ok) {
-        const msg: string =
-          json?.error ?? "Email atau password salah.";
+      if (authError) {
+        const msg =
+          authError.message === "Invalid login credentials"
+            ? "Email atau password salah."
+            : authError.message;
 
         setError(msg);
 
@@ -75,7 +79,60 @@ export default function AdminLoginForm() {
         return;
       }
 
-      // ── 3. Berhasil login sebagai admin ─────────────────────
+      const user = authData.user;
+
+      if (!user) {
+        throw new Error("User tidak ditemukan setelah login.");
+      }
+
+      // ── 3. Ambil role dari tabel profiles ───────────────────
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error("Error fetching admin profile:", profileError);
+
+        // Jangan biarkan session tetap aktif jika role gagal diverifikasi
+        await supabase.auth.signOut();
+
+        const msg = "Gagal memverifikasi role akun.";
+
+        setError(msg);
+
+        setToast({
+          type: "error",
+          title: "Verifikasi Gagal",
+          message: msg,
+        });
+
+        setLoading(false);
+        return;
+      }
+
+      // ── 4. Pastikan role adalah admin ───────────────────────
+      if (profile?.role !== "admin") {
+        // User berhasil login Auth, tetapi bukan admin.
+        // Session langsung dihapus.
+        await supabase.auth.signOut();
+
+        const msg = "Akun ini tidak memiliki akses ke Admin Panel.";
+
+        setError(msg);
+
+        setToast({
+          type: "error",
+          title: "Akses Ditolak",
+          message: msg,
+        });
+
+        setLoading(false);
+        return;
+      }
+
+      // ── 5. Berhasil login sebagai admin ─────────────────────
       setToast({
         type: "success",
         title: "Berhasil Masuk!",
