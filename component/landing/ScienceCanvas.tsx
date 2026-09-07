@@ -17,7 +17,7 @@ interface Particle {
   size: number;
 }
 
-export default function ScienceCanvas({ mode = "seeker" }: ScienceCanvasProps) {
+export default function ScienceCanvas({ mode = "solver" }: ScienceCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const isDark = mode === "seeker";
 

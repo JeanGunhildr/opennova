@@ -89,9 +89,8 @@ export default function Hero({ onOpenAuth }: HeroProps) {
               >
                 Buat Challenge ↗
               </button>
-              <button
-                type="button"
-                onClick={() => handleOpenRegister("seeker")}
+              <a
+                href="#inovasi"
                 className={`px-6 py-3 rounded-full text-[13px] font-semibold tracking-tight border transition-all cursor-pointer hover:-translate-y-0.5 ${
                   isSeeker
                     ? "bg-[#191b20] border-[#292c32] text-[#f4f4f5] hover:border-[#50545d]"
@@ -99,27 +98,27 @@ export default function Hero({ onOpenAuth }: HeroProps) {
                 }`}
               >
                 Lihat Inovasi
-              </button>
+              </a>
             </>
           ) : (
             <>
-              <a
-                href="#inovasi"
-                className="btn-red bg-[#E30000] hover:bg-[#bf0000] text-white px-6 py-3 rounded-full text-[13px] font-semibold tracking-tight shadow-[0_10px_28px_rgba(227,0,0,0.25)] hover:-translate-y-0.5 transition-all inline-flex items-center"
-              >
-                Jelajahi Challenge ↗
-              </a>
               <button
                 type="button"
                 onClick={() => handleOpenRegister("solver")}
+                className="btn-red bg-[#E30000] hover:bg-[#bf0000] text-white px-6 py-3 rounded-full text-[13px] font-semibold tracking-tight shadow-[0_10px_28px_rgba(227,0,0,0.25)] hover:-translate-y-0.5 transition-all inline-flex items-center"
+              >
+                Jelajahi Challenge ↗
+              </button>
+              <a
+                href="#inovasi"
                 className={`px-6 py-3 rounded-full text-[13px] font-semibold tracking-tight border transition-all cursor-pointer hover:-translate-y-0.5 ${
                   isSeeker
                     ? "bg-[#191b20] border-[#292c32] text-[#f4f4f5] hover:border-[#50545d]"
                     : "bg-white border-[#dfe1e5] text-[#111318] hover:border-[#aeb2b8]"
                 }`}
               >
-                Buat Challenge
-              </button>
+                Lihat Inovasi
+              </a>
             </>
           )}
         </div>

@@ -101,18 +101,6 @@ export default function Navbar({ onOpenLogin, onOpenRegister }: NavbarProps) {
             >
               Kategori
             </a>
-            {!isSeeker && (
-              <a
-                href="#inovasi"
-                className={`text-[13px] font-medium transition-colors ${
-                  isSeeker
-                    ? "text-[#cfd1d5] hover:text-white"
-                    : "text-[#30343a] hover:text-[#E30000]"
-                }`}
-              >
-                Jelajahi
-              </a>
-            )}
             <a
               href="#cerita"
               className={`text-[13px] font-medium transition-colors ${
