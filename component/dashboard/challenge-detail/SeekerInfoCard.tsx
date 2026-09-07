@@ -1,7 +1,9 @@
-// SeekerInfoCard.tsx — Styled per JSONC spec
-// Includes: (1) red reward/countdown card, (2) seeker profile card with jenis_perusahaan, deskripsi_perusahaan, alamat_domain
+"use client";
 
-import { BadgeCheck, Globe, Copyright, Building2 } from "lucide-react";
+import { useState } from "react";
+import { BadgeCheck, Globe, Copyright, Building2, Loader2 } from "lucide-react";
+import { getCopyrightUrlAction } from "@/lib/actions/challenge";
+import PopupToast, { type ToastNotification } from "@/component/ui/PopupToast";
 
 export interface SeekerInfoCardProps {
   companyName: string;
@@ -15,6 +17,7 @@ export interface SeekerInfoCardProps {
   jenisPerusahaan?: string | null;
   deskripsiPerusahaan?: string | null;
   alamatDomain?: string | null;
+  copyrightAgreementPath?: string | null;
 }
 
 /** Helper to format company type into clean Indonesian label */
@@ -40,7 +43,28 @@ export default function SeekerInfoCard({
   jenisPerusahaan,
   deskripsiPerusahaan,
   alamatDomain,
+  copyrightAgreementPath,
 }: SeekerInfoCardProps) {
+  const [loadingCopyright, setLoadingCopyright] = useState(false);
+  const [toast, setToast] = useState<ToastNotification | null>(null);
+
+  async function handleDownloadCopyright() {
+    setLoadingCopyright(true);
+    const res = await getCopyrightUrlAction(copyrightAgreementPath);
+    setLoadingCopyright(false);
+
+    if (!res.success || !res.url) {
+      setToast({
+        type: "error",
+        title: "Dokumen Tidak Tersedia",
+        message: res.error || "Gagal mengunduh berkas kesepakatan hak cipta.",
+      });
+      return;
+    }
+
+    window.open(res.url, "_blank", "noopener,noreferrer");
+  }
+
   const displayCompanyType = formatJenisPerusahaan(jenisPerusahaan, industry);
   const displayAbout =
     deskripsiPerusahaan && deskripsiPerusahaan.trim() !== ""
@@ -129,13 +153,21 @@ export default function SeekerInfoCard({
         <div className="px-3.5 pb-3.5">
           <button
             type="button"
-            className="w-full h-[38px] rounded-full bg-white border border-gray-300 text-gray-800 text-[13px] font-semibold flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
+            disabled={loadingCopyright}
+            onClick={handleDownloadCopyright}
+            className="w-full h-[38px] rounded-full bg-white border border-gray-300 text-gray-800 text-[13px] font-semibold flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors disabled:opacity-60"
           >
-            <Copyright size={13} strokeWidth={1.8} />
-            Lihat Kesepakatan Hak Cipta
+            {loadingCopyright ? (
+              <Loader2 size={13} className="animate-spin text-gray-600" />
+            ) : (
+              <Copyright size={13} strokeWidth={1.8} />
+            )}
+            <span>Lihat Kesepakatan Hak Cipta</span>
           </button>
         </div>
       </div>
+
+      <PopupToast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }

@@ -33,6 +33,7 @@ export interface ChallengeDetailClientProps {
   description: string;
   heroStatus: HeroStatus;
   thumbnailPath?: string | null;
+  copyrightAgreementPath?: string | null;
   objectives?: ObjectiveItem[];
   requirements?: RequirementItem[];
   criteria?: CriterionItem[];
@@ -55,6 +56,8 @@ export interface ChallengeDetailClientProps {
   isFullyJudged?: boolean;
   entryStatus?: string;
   isWinner?: boolean;
+  isFinalist?: boolean;
+  winnerRank?: number | null;
 }
 
 export default function ChallengeDetailClient({
@@ -84,6 +87,7 @@ export default function ChallengeDetailClient({
   jenisPerusahaan,
   deskripsiPerusahaan,
   alamatDomain,
+  copyrightAgreementPath,
   userParticipationState = "ACTIVE_NOT_JOINED",
   userTeamName = "",
   captainTeams = [],
@@ -92,6 +96,8 @@ export default function ChallengeDetailClient({
   isFullyJudged = false,
   entryStatus = "registered",
   isWinner = false,
+  isFinalist = false,
+  winnerRank = null,
 }: ChallengeDetailClientProps) {
   const [activeTab, setActiveTab] = useState<string>("Deskripsi");
   const [discussionCount, setDiscussionCount] = useState<number>(discussions.length);
@@ -176,6 +182,7 @@ export default function ChallengeDetailClient({
             jenisPerusahaan={jenisPerusahaan}
             deskripsiPerusahaan={deskripsiPerusahaan}
             alamatDomain={alamatDomain}
+            copyrightAgreementPath={copyrightAgreementPath}
           />
 
           {/* Join / Submission Interactive Action Widget (placed below per request) */}
@@ -197,6 +204,8 @@ export default function ChallengeDetailClient({
               isFullyJudged={isFullyJudged}
               entryStatus={entryStatus}
               isWinner={isWinner}
+              isFinalist={isFinalist}
+              winnerRank={winnerRank}
               challengeStatus={status}
               hasSubmission={Boolean(existingSubmissionUrl)}
             />

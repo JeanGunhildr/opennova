@@ -1,7 +1,24 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+import {
+  selectTopFinalists,
+  enrichEntriesWithScores,
+  rankFinalists,
+  type CriterionRow,
+} from "@/lib/services/scoring";
+import { insertBatchNotifications } from "@/lib/actions/notifications";
+
+function getAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHED_KEY ||
+    "";
+  return createSupabaseClient(url, key);
+}
 
 // ============================================================
 // TYPES
@@ -15,9 +32,15 @@ export type ManageChallengeEntry = {
   driveUrl: string | null;
   entryStatus: string;
   isWinner: boolean;
+  isFinalist: boolean;
+  winnerRank: number | null;
+  submittedAt: string | null;
+  solverUserId: string | null;
+  teamId: string | null;
   email?: string;
   scores: Record<string, number>;
 };
+
 
 export interface ManageChallengeCriterion {
   id: string;
@@ -259,6 +282,8 @@ export async function getManageChallengeDataAction(
     team_name_snapshot,
     status,
     is_winner,
+    is_finalist,
+    winner_rank,
     joined_at
   `,
       )
@@ -500,6 +525,11 @@ export async function getManageChallengeDataAction(
         driveUrl: latestSub?.drive_url ?? null,
         entryStatus: e.status,
         isWinner: Boolean(e.is_winner),
+        isFinalist: Boolean(e.is_finalist || e.status === "finalist"),
+        winnerRank: e.winner_rank ?? null,
+        submittedAt: latestSub?.submitted_at ?? null,
+        solverUserId: e.solver_id ?? null,
+        teamId: e.team_id ?? null,
         email,
         scores: scoresMap[e.id] ?? {},
       };
@@ -518,6 +548,7 @@ export async function getManageChallengeDataAction(
         participationType: entry.participationType,
         status: entry.entryStatus,
         isWinner: entry.isWinner,
+        isFinalist: entry.isFinalist,
         driveUrl: entry.driveUrl,
       })),
     });
@@ -532,10 +563,12 @@ export async function getManageChallengeDataAction(
     );
 
     const pitchingEntries = allEntries.filter(
-      (entry) => entry.entryStatus === "finalist" || entry.isWinner,
+      (entry) => entry.isFinalist || entry.entryStatus === "finalist" || entry.isWinner,
     );
 
-    const winnerEntries = allEntries.filter((entry) => entry.isWinner);
+    const winnerEntries = allEntries
+      .filter((entry) => entry.isWinner)
+      .sort((a, b) => (a.winnerRank ?? 99) - (b.winnerRank ?? 99));
 
     console.log("📊 STAGE COUNTS:", {
       challengeId,
@@ -656,6 +689,37 @@ export async function saveBatchScoresAction(
         error:
           "Akses ditolak: Anda tidak memiliki hak untuk menilai peserta ini.",
       };
+    }
+
+    // Backend Security: Only finalists can receive Final Pitch scores
+    const criterionIds = Object.keys(scores);
+    if (criterionIds.length > 0) {
+      const { data: pitchCriteria } = await supabase
+        .from("judging_criteria")
+        .select("id")
+        .in("id", criterionIds)
+        .eq("stage", "final_pitch");
+
+      if (pitchCriteria && pitchCriteria.length > 0) {
+        const { data: entryObj } = await supabase
+          .from("challenge_entries")
+          .select("is_finalist, status, is_winner")
+          .eq("id", entryId)
+          .maybeSingle();
+
+        const isFinalist = Boolean(
+          entryObj?.is_finalist ||
+            entryObj?.status === "finalist" ||
+            entryObj?.is_winner
+        );
+        if (!isFinalist) {
+          return {
+            success: false,
+            error:
+              "Akses ditolak: Hanya peserta terpilih sebagai Finalis yang dapat dinilai pada tahap Pitching Final.",
+          };
+        }
+      }
     }
 
     const upsertRows = Object.entries(scores).map(([criterionId, score]) => ({
@@ -799,3 +863,609 @@ export async function updateChallengeSettingsAction(
     };
   }
 }
+
+// ============================================================
+// PHASE TRANSITION: MOVE TO JUDGING (ongoing -> judging)
+// ============================================================
+
+export async function moveChallengeToJudgingAction(
+  challengeId: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Sesi berakhir." };
+
+    const { data: ch } = await supabase
+      .from("challenges")
+      .select("id, name, status")
+      .eq("id", challengeId)
+      .eq("seeker_id", user.id)
+      .maybeSingle();
+
+    if (!ch) return { success: false, error: "Challenge tidak ditemukan atau akses ditolak." };
+
+    const adminSupabase = getAdminClient();
+
+    // Update challenge status to judging
+    const { error: updateErr } = await adminSupabase
+      .from("challenges")
+      .update({ status: "judging" })
+      .eq("id", challengeId);
+
+    if (updateErr) {
+      console.error("moveChallengeToJudgingAction update error:", updateErr);
+      return { success: false, error: updateErr.message };
+    }
+
+    // Find entries without submissions and auto-eliminate
+    const { data: entries } = await adminSupabase
+      .from("challenge_entries")
+      .select("id, solver_id")
+      .eq("challenge_id", challengeId);
+
+    const entryIds = (entries ?? []).map((e: any) => e.id);
+    let subEntryIds = new Set<string>();
+
+    if (entryIds.length > 0) {
+      const { data: subRows } = await adminSupabase
+        .from("submissions")
+        .select("entry_id")
+        .in("entry_id", entryIds);
+
+      (subRows ?? []).forEach((s: any) => subEntryIds.add(s.entry_id));
+    }
+
+    const noSubEntryIds: string[] = [];
+    const notifyUsers: string[] = [];
+
+    for (const e of entries ?? []) {
+      if (!subEntryIds.has(e.id)) {
+        noSubEntryIds.push(e.id);
+      }
+      if (e.solver_id) notifyUsers.push(e.solver_id);
+    }
+
+    if (noSubEntryIds.length > 0) {
+      await adminSupabase
+        .from("challenge_entries")
+        .update({ status: "eliminated" })
+        .in("id", noSubEntryIds);
+    }
+
+    // Send notification to participants
+    const notifications = notifyUsers.map((uid) => ({
+      userId: uid,
+      type: "challenge",
+      title: "Penjurian Ahli Dimulai",
+      body: `Challenge "${ch.name}" kini memasuki tahap Penjurian Ahli. Dewan juri sedang menilai submission yang masuk.`,
+      actionUrl: `/solver/challenge/${challengeId}`,
+      challengeId,
+    }));
+    await insertBatchNotifications(supabase, notifications);
+
+    triggerRevalidateManagePaths(challengeId);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Gagal mengubah fase ke Penjurian Ahli." };
+  }
+}
+
+// ============================================================
+// PHASE TRANSITION: SELECT FINALISTS (judging -> final_pitch)
+// ============================================================
+
+export async function selectFinalistsAction(
+  challengeId: string,
+): Promise<{ success: boolean; error?: string; finalistCount?: number }> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Sesi berakhir." };
+
+    const { data: ch } = await supabase
+      .from("challenges")
+      .select("id, name, expert_weight, pitch_weight")
+      .eq("id", challengeId)
+      .eq("seeker_id", user.id)
+      .maybeSingle();
+
+    if (!ch) return { success: false, error: "Challenge tidak ditemukan atau akses ditolak." };
+
+    const adminSupabase = getAdminClient();
+
+    // Fetch criteria for stage expert_judging
+    const { data: criteriaRows } = await adminSupabase
+      .from("judging_criteria")
+      .select("id, stage")
+      .eq("challenge_id", challengeId);
+
+    const criteria: CriterionRow[] = (criteriaRows ?? []).map((c: any) => ({
+      id: c.id,
+      stage: c.stage,
+    }));
+
+    // Fetch ALL entries for this challenge (no status filter).
+    // This makes the action idempotent — it can be re-run to fix any
+    // incorrectly-eliminated entries or recover from a partial previous run.
+    const { data: entries, error: entriesErr } = await adminSupabase
+      .from("challenge_entries")
+      .select("id, solver_id, team_id, status")
+      .eq("challenge_id", challengeId);
+
+    console.log("🔍 selectFinalistsAction entries:", {
+      challengeId,
+      count: entries?.length ?? 0,
+      statuses: entries?.map((e: any) => e.status),
+      err: entriesErr?.message,
+    });
+
+    if (!entries || entries.length === 0) {
+      return { success: false, error: "Tidak ada peserta terdaftar pada challenge ini." };
+    }
+
+    const entryIds = entries.map((e: any) => e.id);
+
+    // Fetch submissions separately (for submittedAt tie-breaking only)
+    const { data: subRows } = await adminSupabase
+      .from("submissions")
+      .select("entry_id, drive_url, submitted_at")
+      .in("entry_id", entryIds)
+      .order("submitted_at", { ascending: false });
+
+    const latestSubMap = new Map<string, any>();
+    for (const sub of subRows ?? []) {
+      if (!latestSubMap.has(sub.entry_id)) {
+        latestSubMap.set(sub.entry_id, sub);
+      }
+    }
+
+    // Fetch scores
+    const { data: scoreRows } = await adminSupabase
+      .from("criterion_scores")
+      .select("entry_id, criterion_id, score")
+      .in("entry_id", entryIds);
+
+    const scoresMap = new Map<string, Array<{ criterion_id: string; score: number }>>();
+    for (const r of scoreRows ?? []) {
+      const entryId = (r as any).entry_id;
+      if (!scoresMap.has(entryId)) scoresMap.set(entryId, []);
+      scoresMap.get(entryId)!.push({ criterion_id: (r as any).criterion_id, score: Number((r as any).score) });
+    }
+
+    // All non-eliminated entries are candidates — no drive_url gate here.
+    // (Seeker manually triggers this, so they decide who qualifies.)
+    const rawEntries = entries.map((e: any) => {
+      const latestSub = latestSubMap.get(e.id);
+      return {
+        entryId: e.id,
+        solverUserId: e.solver_id ?? null,
+        teamId: e.team_id ?? null,
+        submittedAt: latestSub?.submitted_at ?? null,
+        scores: scoresMap.get(e.id) ?? [],
+      };
+    });
+
+    const enriched = enrichEntriesWithScores(
+      rawEntries,
+      criteria,
+      Number(ch.expert_weight) || 50,
+      Number(ch.pitch_weight) || 50,
+    );
+
+    const topFinalists = selectTopFinalists(enriched, 3);
+    const finalistEntryIds = new Set(topFinalists.map((f) => f.entryId));
+
+    // Update DB: Set top 3 as finalists
+    const now = new Date().toISOString();
+    for (const f of topFinalists) {
+      const { error: updErr } = await adminSupabase
+        .from("challenge_entries")
+        .update({
+          is_finalist: true,
+          finalist_selected_at: now,
+          status: "finalist",
+        })
+        .eq("id", f.entryId);
+
+      if (updErr) {
+        console.error("Error updating finalist entry:", f.entryId, updErr);
+      }
+    }
+
+    // Set other entries as eliminated
+    const nonFinalistIds = entryIds.filter((id) => !finalistEntryIds.has(id));
+    if (nonFinalistIds.length > 0) {
+      await adminSupabase
+        .from("challenge_entries")
+        .update({ status: "eliminated" })
+        .in("id", nonFinalistIds);
+    }
+
+    // Update challenge status to final_pitch
+    const { error: chUpdErr } = await adminSupabase
+      .from("challenges")
+      .update({ status: "final_pitch" })
+      .eq("id", challengeId);
+
+    if (chUpdErr) {
+      console.error("Error updating challenge status to final_pitch:", chUpdErr);
+    }
+
+    // Send notifications
+    const notifications: Array<{
+      userId: string;
+      type: string;
+      title: string;
+      body: string;
+      actionUrl?: string;
+      challengeId?: string;
+    }> = [];
+
+    for (const e of entries) {
+      const isFinalist = finalistEntryIds.has(e.id);
+      let recipientUserIds: string[] = [];
+
+      if (e.team_id) {
+        const { data: members } = await adminSupabase
+          .from("team_members")
+          .select("user_id")
+          .eq("team_id", e.team_id)
+          .eq("status", "active");
+        recipientUserIds = (members ?? []).map((m: any) => m.user_id);
+      } else if (e.solver_id) {
+        recipientUserIds = [e.solver_id];
+      }
+
+      for (const userId of recipientUserIds) {
+        if (isFinalist) {
+          notifications.push({
+            userId,
+            type: "challenge",
+            title: "🎉 Selamat! Kamu Masuk Top 3 Finalist!",
+            body: e.team_id
+              ? `Tim Anda pada challenge "${ch.name}" berhasil terpilih sebagai Top 3 Finalist. Bersiaplah untuk tahap Pitching Final!`
+              : `Solusimu pada challenge "${ch.name}" berhasil terpilih sebagai Top 3 Finalist. Bersiaplah untuk tahap Pitching Final!`,
+            actionUrl: `/solver/challenge/${challengeId}`,
+            challengeId,
+          });
+        } else {
+          notifications.push({
+            userId,
+            type: "challenge",
+            title: "Hasil Seleksi Penjurian Ahli",
+            body: e.team_id
+              ? `Terima kasih atas partisipasi tim Anda pada challenge "${ch.name}". Tim Anda belum lolos ke tahap Final Pitch kali ini.`
+              : `Terima kasih atas partisipasimu pada challenge "${ch.name}". Kamu belum lolos ke tahap Final Pitch kali ini.`,
+            actionUrl: `/solver/challenge/${challengeId}`,
+            challengeId,
+          });
+        }
+      }
+    }
+    await insertBatchNotifications(supabase, notifications);
+
+    triggerRevalidateManagePaths(challengeId);
+    return { success: true, finalistCount: topFinalists.length };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Gagal memilih finalis." };
+  }
+}
+
+// ============================================================
+// PHASE TRANSITION: ANNOUNCE WINNER (final_pitch -> completed)
+// ============================================================
+
+export async function announceWinnerAction(
+  challengeId: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Sesi berakhir." };
+
+    const { data: ch } = await supabase
+      .from("challenges")
+      .select("id, name, prize_pool, expert_weight, pitch_weight")
+      .eq("id", challengeId)
+      .eq("seeker_id", user.id)
+      .maybeSingle();
+
+    if (!ch) return { success: false, error: "Challenge tidak ditemukan atau akses ditolak." };
+
+    const adminSupabase = getAdminClient();
+
+    // Fetch criteria
+    const { data: criteriaRows } = await adminSupabase
+      .from("judging_criteria")
+      .select("id, stage")
+      .eq("challenge_id", challengeId);
+
+    const criteria: CriterionRow[] = (criteriaRows ?? []).map((c: any) => ({
+      id: c.id,
+      stage: c.stage,
+    }));
+
+    // Fetch finalist entries
+    const { data: entries } = await adminSupabase
+      .from("challenge_entries")
+      .select("id, solver_id, team_id, is_finalist, status")
+      .eq("challenge_id", challengeId)
+      .or("is_finalist.eq.true,status.eq.finalist");
+
+    if (!entries || entries.length === 0) {
+      return { success: false, error: "Tidak ada finalis untuk ditentukan sebagai pemenang." };
+    }
+
+    const entryIds = entries.map((e: any) => e.id);
+
+    // Fetch submissions separately
+    const { data: subRows } = await adminSupabase
+      .from("submissions")
+      .select("entry_id, drive_url, submitted_at")
+      .in("entry_id", entryIds)
+      .order("submitted_at", { ascending: false });
+
+    const latestSubMap = new Map<string, any>();
+    for (const sub of subRows ?? []) {
+      if (!latestSubMap.has(sub.entry_id)) {
+        latestSubMap.set(sub.entry_id, sub);
+      }
+    }
+
+    const { data: scoreRows } = await adminSupabase
+      .from("criterion_scores")
+      .select("entry_id, criterion_id, score")
+      .in("entry_id", entryIds);
+
+    const scoresMap = new Map<string, Array<{ criterion_id: string; score: number }>>();
+    for (const r of scoreRows ?? []) {
+      const entryId = (r as any).entry_id;
+      if (!scoresMap.has(entryId)) scoresMap.set(entryId, []);
+      scoresMap.get(entryId)!.push({ criterion_id: (r as any).criterion_id, score: Number((r as any).score) });
+    }
+
+    const rawEntries = entries.map((e: any) => {
+      const latestSub = latestSubMap.get(e.id);
+      return {
+        entryId: e.id,
+        solverUserId: e.solver_id ?? null,
+        teamId: e.team_id ?? null,
+        submittedAt: latestSub?.submitted_at ?? null,
+        scores: scoresMap.get(e.id) ?? [],
+      };
+    });
+
+    const enriched = enrichEntriesWithScores(
+      rawEntries,
+      criteria,
+      Number(ch.expert_weight) || 50,
+      Number(ch.pitch_weight) || 50,
+    );
+
+    const ranked = rankFinalists(enriched);
+    const prizePool = Number(ch.prize_pool) || 0;
+
+    // Distribute prize pool dynamically based on number of finalists:
+    // If only 1 finalist/winner: Rank 1 gets 100% of the prize pool
+    // If 2 finalists: Rank 1 gets 70%, Rank 2 gets 30%
+    // If 3+ finalists: Rank 1 gets 60%, Rank 2 gets 25%, Rank 3 gets 15%
+    let prizeDistribution: Record<number, number> = {};
+    if (ranked.length === 1) {
+      prizeDistribution = { 1: prizePool };
+    } else if (ranked.length === 2) {
+      prizeDistribution = {
+        1: Math.round(prizePool * 0.7),
+        2: Math.round(prizePool * 0.3),
+      };
+    } else {
+      prizeDistribution = {
+        1: Math.round(prizePool * 0.6),
+        2: Math.round(prizePool * 0.25),
+        3: Math.round(prizePool * 0.15),
+      };
+    }
+
+    for (const r of ranked) {
+      const isRank1 = r.rank === 1;
+      await adminSupabase
+        .from("challenge_entries")
+        .update({
+          is_winner: isRank1,
+          winner_rank: r.rank,
+          status: isRank1 ? "winner" : "finalist",
+        })
+        .eq("id", r.entryId);
+
+      let recipientUserId: string | null = r.solverUserId;
+      if (!recipientUserId && r.teamId) {
+        const { data: team } = await adminSupabase
+          .from("teams")
+          .select("captain_id")
+          .eq("id", r.teamId)
+          .maybeSingle();
+        recipientUserId = team?.captain_id ?? null;
+      }
+
+      const prizeAmount = prizeDistribution[r.rank] ?? 0;
+
+      // Insert prize award (actual columns: entry_id, recipient_user_id, amount, note)
+      await adminSupabase.from("prize_awards").upsert(
+        {
+          entry_id: r.entryId,
+          recipient_user_id: recipientUserId,
+          amount: prizeAmount,
+          note: `Juara ${r.rank}`,
+        },
+        { onConflict: "entry_id" },
+      );
+
+      // Insert certificate (actual columns: entry_id, user_id, certificate_number)
+      if (recipientUserId) {
+        await adminSupabase.from("certificates").upsert(
+          {
+            entry_id: r.entryId,
+            user_id: recipientUserId,
+            certificate_number: `CERT-${challengeId.slice(0, 8).toUpperCase()}-${r.rank}`,
+          },
+          { onConflict: "entry_id" },
+        );
+      }
+
+      // Credit prize balance for winners (Top 3)
+      // Individual: credited to solverUserId
+      // Team: credited to team's captain_id ONLY
+      if (recipientUserId && prizeAmount > 0) {
+        const { data: sp } = await adminSupabase
+          .from("solver_profiles")
+          .select("balance")
+          .eq("user_id", recipientUserId)
+          .maybeSingle();
+
+        const currentBalance = Number(sp?.balance ?? 0);
+        const newBalance = currentBalance + prizeAmount;
+
+        const { error: spErr } = await adminSupabase
+          .from("solver_profiles")
+          .update({ balance: newBalance })
+          .eq("user_id", recipientUserId);
+
+        if (spErr) {
+          console.error("announceWinnerAction: error updating solver balance:", spErr);
+        }
+
+        // Record in balance_transactions
+        const { error: txErr } = await adminSupabase
+          .from("balance_transactions")
+          .insert({
+            user_id: recipientUserId,
+            amount: prizeAmount,
+            type: "prize",
+            description: `Hadiah Juara ${r.rank} - ${ch.name}`,
+            reference_id: challengeId,
+          });
+
+        if (txErr) {
+          console.error("announceWinnerAction: error inserting balance_transaction:", txErr);
+        }
+      }
+    }
+
+    // Update challenge status to completed
+    await adminSupabase
+      .from("challenges")
+      .update({ status: "completed" })
+      .eq("id", challengeId);
+
+    // Send notifications to all participants
+    const { data: allEntries } = await adminSupabase
+      .from("challenge_entries")
+      .select("id, solver_id, team_id, team_name_snapshot, winner_rank, is_winner, status")
+      .eq("challenge_id", challengeId);
+
+    const notifications: Array<{
+      userId: string;
+      type: string;
+      title: string;
+      body: string;
+      actionUrl?: string;
+      challengeId?: string;
+    }> = [];
+
+    for (const e of allEntries ?? []) {
+      const rankObj = ranked.find((r) => r.entryId === e.id);
+      const isWinner = Boolean(rankObj && rankObj.rank <= 3);
+      const prizeAmount = rankObj ? (prizeDistribution[rankObj.rank] ?? 0) : 0;
+      const rankLabel = rankObj?.rank === 1 ? "Juara 1 🏆" : rankObj?.rank === 2 ? "Juara 2 🥈" : "Juara 3 🥉";
+
+      if (e.team_id) {
+        // Fetch team captain and active members
+        const { data: team } = await adminSupabase
+          .from("teams")
+          .select("captain_id")
+          .eq("id", e.team_id)
+          .maybeSingle();
+        const captainId = team?.captain_id;
+
+        const { data: members } = await adminSupabase
+          .from("team_members")
+          .select("user_id")
+          .eq("team_id", e.team_id)
+          .eq("status", "active");
+
+        const teamName = e.team_name_snapshot || "Tim";
+
+        for (const member of members ?? []) {
+          const isCaptain = member.user_id === captainId;
+          if (isWinner && rankObj) {
+            if (isCaptain) {
+              notifications.push({
+                userId: member.user_id,
+                type: "earnings",
+                title: `🏆 ${rankLabel} Challenge — Tim ${teamName}!`,
+                body: `Selamat! Tim "${teamName}" berhasil meraih ${rankLabel} pada challenge "${ch.name}". Hadiah senilai Rp ${prizeAmount.toLocaleString("id-ID")} telah ditambahkan ke saldo Anda sebagai perwakilan ketua tim!`,
+                actionUrl: `/solver/earnings`,
+                challengeId,
+              });
+            } else {
+              notifications.push({
+                userId: member.user_id,
+                type: "earnings",
+                title: `🏆 ${rankLabel} Challenge — Tim ${teamName}!`,
+                body: `Selamat! Tim "${teamName}" berhasil meraih ${rankLabel} pada challenge "${ch.name}". Uang pembinaan sebesar Rp ${prizeAmount.toLocaleString("id-ID")} diserahkan melalui perwakilan ketua tim.`,
+                actionUrl: `/solver/challenge/${challengeId}`,
+                challengeId,
+              });
+            }
+          } else {
+            notifications.push({
+              userId: member.user_id,
+              type: "challenge",
+              title: "Pengumuman Pemenang Challenge",
+              body: `Pemenang resmi challenge "${ch.name}" telah diumumkan. Terima kasih atas partisipasi tim "${teamName}"!`,
+              actionUrl: `/solver/challenge/${challengeId}`,
+              challengeId,
+            });
+          }
+        }
+      } else if (e.solver_id) {
+        if (isWinner && rankObj) {
+          notifications.push({
+            userId: e.solver_id,
+            type: "earnings",
+            title: `🏆 ${rankLabel} Challenge!`,
+            body: `Selamat! Solusi Anda meraih ${rankLabel} pada challenge "${ch.name}". Hadiah senilai Rp ${prizeAmount.toLocaleString("id-ID")} telah ditambahkan ke saldo akun Anda!`,
+            actionUrl: `/solver/earnings`,
+            challengeId,
+          });
+        } else {
+          notifications.push({
+            userId: e.solver_id,
+            type: "challenge",
+            title: "Pengumuman Pemenang Challenge",
+            body: `Pemenang resmi challenge "${ch.name}" telah diumumkan. Terima kasih atas partisipasimu!`,
+            actionUrl: `/solver/challenge/${challengeId}`,
+            challengeId,
+          });
+        }
+      }
+    }
+    await insertBatchNotifications(supabase, notifications);
+
+    triggerRevalidateManagePaths(challengeId);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Gagal mengumumkan pemenang." };
+  }
+}
+
+function fEntryId(id: string): string {
+  return id;
+}
+

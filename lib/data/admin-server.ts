@@ -5,6 +5,7 @@ import type {
   SeekerRow,
   SolverRow,
 } from "./admin";
+import { PLATFORM_FEE_RATE } from "./admin";
 
 export interface AdminChallengeDetail {
   id: string;
@@ -565,5 +566,99 @@ export async function getAdminSolvers(): Promise<SolverRow[]> {
   } catch (err) {
     console.error("getAdminSolvers exception:", err);
     return [];
+  }
+}
+
+export interface AdminDashboardSummary {
+  totalSolver: number;
+  totalSeeker: number;
+  totalActiveChallenge: number;
+  platformRevenue: number;
+  escrowHeld: number;
+}
+
+/**
+ * Fetch real dynamic dashboard summary metrics for Admin from Supabase DB.
+ */
+export async function getAdminDashboardSummary(): Promise<AdminDashboardSummary> {
+  try {
+    const supabase = await createClient();
+
+    // 1. Total Solver count
+    const { count: solverCount, error: solverErr } = await supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "solver");
+
+    if (solverErr) {
+      console.warn("getAdminDashboardSummary solverCount error:", solverErr.message);
+    }
+
+    // 2. Total Seeker count
+    const { count: seekerCount, error: seekerErr } = await supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "seeker");
+
+    if (seekerErr) {
+      console.warn("getAdminDashboardSummary seekerCount error:", seekerErr.message);
+    }
+
+    // 3. Challenges query
+    const { data: challenges, error: chErr } = await supabase
+      .from("challenges")
+      .select("id, status, prize_pool, creation_fee, total_payment");
+
+    if (chErr) {
+      console.warn("getAdminDashboardSummary challenges error:", chErr.message);
+    }
+
+    const activeStatuses = new Set([
+      "open",
+      "active",
+      "ongoing",
+      "published",
+      "expert_judging",
+      "judging",
+      "final_pitch",
+    ]);
+
+    const activeChallenges = (challenges ?? []).filter((c: any) =>
+      activeStatuses.has((c.status || "").toLowerCase())
+    );
+
+    // Platform revenue = 10% creation fee from non-rejected challenges
+    const validChallenges = (challenges ?? []).filter(
+      (c: any) => (c.status || "").toLowerCase() !== "rejected"
+    );
+
+    const platformRevenue = validChallenges.reduce((sum: number, c: any) => {
+      const fee =
+        Number(c.creation_fee) ||
+        Math.round(Number(c.prize_pool || 0) * (PLATFORM_FEE_RATE || 0.1));
+      return sum + fee;
+    }, 0);
+
+    const escrowHeld = activeChallenges.reduce(
+      (sum: number, c: any) => sum + Number(c.prize_pool || 0),
+      0
+    );
+
+    return {
+      totalSolver: solverCount ?? 0,
+      totalSeeker: seekerCount ?? 0,
+      totalActiveChallenge: activeChallenges.length,
+      platformRevenue,
+      escrowHeld,
+    };
+  } catch (err) {
+    console.error("getAdminDashboardSummary exception:", err);
+    return {
+      totalSolver: 0,
+      totalSeeker: 0,
+      totalActiveChallenge: 0,
+      platformRevenue: 0,
+      escrowHeld: 0,
+    };
   }
 }

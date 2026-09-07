@@ -20,6 +20,8 @@ export interface ScorePanelProps {
   isFullyJudged?: boolean;
   entryStatus?: string; // registered | submitted | finalist | winner | eliminated
   isWinner?: boolean;
+  isFinalist?: boolean;
+  winnerRank?: number | null;
   challengeStatus?: string; // ongoing | judging | final_pitch | completed
   hasSubmission?: boolean;
 }
@@ -57,6 +59,7 @@ function StageSection({
   const scoredItems = stageCriteria.filter((c) => c.score !== null);
   const totalScore = scoredItems.reduce((sum, c) => sum + (c.score ?? 0), 0);
   const hasScores = scoredItems.length > 0;
+  const stageAvg = stageCriteria.length > 0 && hasScores ? Math.round((totalScore / stageCriteria.length) * 10) / 10 : 0;
 
   return (
     <div>
@@ -110,7 +113,7 @@ function StageSection({
         })}
       </div>
 
-      {/* Total per stage */}
+      {/* Average per stage */}
       <div
         className={`mt-3.5 flex items-center justify-between rounded-[10px] px-3.5 py-2.5 transition-colors ${
           hasScores ? "bg-gray-900" : "bg-gray-100"
@@ -121,14 +124,14 @@ function StageSection({
             hasScores ? "text-white" : "text-gray-400"
           }`}
         >
-          {totalScore}
+          {stageAvg}
         </span>
         <span
           className={`text-[11px] font-bold ${
             hasScores ? "text-white" : "text-gray-400"
           }`}
         >
-          Total Nilai
+          Rata-rata {label}
         </span>
       </div>
     </div>
@@ -145,12 +148,16 @@ function getResultNotification({
   criteria,
   entryStatus = "registered",
   isWinner = false,
+  isFinalist = false,
+  winnerRank = null,
   challengeStatus = "ongoing",
   hasSubmission = false,
 }: {
   criteria: ScoreCriterion[];
   entryStatus?: string;
   isWinner?: boolean;
+  isFinalist?: boolean;
+  winnerRank?: number | null;
   challengeStatus?: string;
   hasSubmission?: boolean;
 }): ResultNotification {
@@ -172,34 +179,54 @@ function getResultNotification({
   const isFinalPitchStage = chStatus === "final_pitch";
   const isJudgingStage = chStatus === "judging";
 
-  // Priority 1: Winner / Menang
-  if (isWinner || entryStatus === "winner") {
+  // Priority 1: Winner / Rank
+  if (isWinner || entryStatus === "winner" || winnerRank === 1) {
     return {
-      title: "Pemenang Challenge! 🏆",
-      message: "Selamat! Anda terpilih sebagai pemenang challenge ini.",
+      title: "Pemenang Juara 1 Challenge! 🏆",
+      message: "Selamat! Solusi Anda terpilih sebagai Juara 1 pada challenge ini.",
       type: "winner",
+    };
+  }
+
+  if (winnerRank === 2) {
+    return {
+      title: "Juara 2 Challenge! 🥈",
+      message: "Selamat! Solusi Anda terpilih sebagai Juara 2 pada challenge ini.",
+      type: "success",
+    };
+  }
+
+  if (winnerRank === 3) {
+    return {
+      title: "Juara 3 Challenge! 🥉",
+      message: "Selamat! Solusi Anda terpilih sebagai Juara 3 pada challenge ini.",
+      type: "success",
     };
   }
 
   // Priority 2: Lolos Final Pitch tetapi Tidak Menang (Challenge Completed)
   if (
     isCompleted &&
-    (entryStatus === "finalist" || pitchScoredCount > 0) &&
+    (entryStatus === "finalist" || isFinalist || pitchScoredCount > 0) &&
     !isWinner
   ) {
     return {
       title: "Hasil Akhir Kompetisi",
       message:
-        "Anda berhasil lolos Final Pitch, tetapi belum terpilih sebagai pemenang.",
+        "Anda berhasil lolos Final Pitch sebagai Finalis.",
       type: "neutral",
     };
   }
 
   // Priority 3: Tidak Lolos / Gagal Lolos ke Final Pitch
+  // Hanya tampil jika: entry secara eksplisit di-eliminate,
+  // ATAU challenge sudah selesai (completed) tapi dia bukan finalist/winner.
+  // JANGAN tampil hanya karena challenge sudah final_pitch tapi finalis belum dipilih.
   if (
     entryStatus === "eliminated" ||
-    ((isFinalPitchStage || isCompleted) &&
+    (isCompleted &&
       entryStatus !== "finalist" &&
+      !isFinalist &&
       entryStatus !== "winner" &&
       !isWinner)
   ) {
@@ -211,7 +238,7 @@ function getResultNotification({
   }
 
   // Priority 4: Lolos Final Pitch
-  if (entryStatus === "finalist") {
+  if (entryStatus === "finalist" || isFinalist) {
     if (isPitchFullyJudged) {
       return {
         title: "Tahap Final Pitch Selesai",
@@ -222,7 +249,7 @@ function getResultNotification({
     }
     return {
       title: "Lolos Ke Final Pitch! 🎉",
-      message: "Selamat! Anda lolos ke tahap Final Pitch.",
+      message: "Selamat! Anda lolos ke tahap Final Pitch sebagai Top 3 Finalist.",
       type: "success",
     };
   }
@@ -236,6 +263,16 @@ function getResultNotification({
       title: "Penjurian Ahli Selesai",
       message:
         "Penilaian Expert Judging telah selesai. Menunggu hasil seleksi Final Pitch.",
+      type: "info",
+    };
+  }
+
+  // Priority 5b: Challenge sudah masuk Final Pitch, tapi peserta belum dipilih jadi finalist
+  if (isFinalPitchStage) {
+    return {
+      title: "Tahap Pitching Final Berlangsung",
+      message:
+        "Challenge telah memasuki tahap Pitching Final. Hasil seleksi finalist akan segera diumumkan.",
       type: "info",
     };
   }
@@ -274,27 +311,51 @@ export default function ScorePanel({
   isFullyJudged = false,
   entryStatus = "registered",
   isWinner = false,
+  isFinalist = false,
+  winnerRank = null,
   challengeStatus = "ongoing",
   hasSubmission = false,
 }: ScorePanelProps) {
   const expertCriteria = criteria.filter((c) => c.stage === "expert_judging");
   const pitchCriteria = criteria.filter((c) => c.stage === "final_pitch");
 
-  // Calculate total final score from all judged criteria.
-  // Unjudged criteria contribute 0.
-  const expertTotal = expertCriteria.reduce(
-    (sum, c) => sum + (c.score ?? 0),
-    0,
-  );
+  // Calculate simple averages per stage
+  const expertScoredItems = expertCriteria.filter((c) => c.score !== null);
+  const hasExpertScores = expertScoredItems.length > 0;
+  const expertTotalRaw = expertScoredItems.reduce((sum, c) => sum + (c.score ?? 0), 0);
+  const expertAvg = expertCriteria.length > 0 && hasExpertScores ? expertTotalRaw / expertCriteria.length : 0;
 
-  const pitchTotal = pitchCriteria.reduce((sum, c) => sum + (c.score ?? 0), 0);
+  const pitchScoredItems = pitchCriteria.filter((c) => c.score !== null);
+  const hasPitchScores = pitchScoredItems.length > 0;
+  const pitchTotalRaw = pitchScoredItems.reduce((sum, c) => sum + (c.score ?? 0), 0);
+  const pitchAvg = pitchCriteria.length > 0 && hasPitchScores ? pitchTotalRaw / pitchCriteria.length : 0;
 
-  const finalScore = expertTotal + pitchTotal;
+  // Simple average final score calculation
+  let finalScoreRaw = 0;
+  let subtitleText = "";
+
+  if (hasExpertScores && hasPitchScores) {
+    finalScoreRaw = (expertAvg + pitchAvg) / 2;
+    subtitleText = "Rata-rata Penjurian Ahli & Pitching Final";
+  } else if (hasExpertScores) {
+    finalScoreRaw = expertAvg;
+    subtitleText = "Rata-rata Penjurian Ahli";
+  } else if (hasPitchScores) {
+    finalScoreRaw = pitchAvg;
+    subtitleText = "Rata-rata Pitching Final";
+  } else {
+    finalScoreRaw = 0;
+    subtitleText = "Belum Ada Penilaian";
+  }
+
+  const finalScore = Math.round(finalScoreRaw * 10) / 10;
 
   const notification = getResultNotification({
     criteria,
     entryStatus,
     isWinner,
+    isFinalist,
+    winnerRank,
     challengeStatus,
     hasSubmission,
   });
@@ -434,7 +495,7 @@ export default function ScorePanel({
               </span>
             </div>
             <p className="text-[10px] text-gray-400 mt-0.5 uppercase tracking-wide">
-              Penjurian Ahli ({expertWeight}%) + Pitching Final ({pitchWeight}%)
+              {subtitleText}
             </p>
           </div>
         )}

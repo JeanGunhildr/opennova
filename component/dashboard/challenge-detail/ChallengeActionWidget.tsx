@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   Link2,
@@ -132,6 +133,7 @@ export default function ChallengeActionWidget({
 
   // Modal konfirmasi state
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showCancelJoinModal, setShowCancelJoinModal] = useState(false);
 
   // Join options & Modal state
   const [isJoining, setIsJoining] = useState(false);
@@ -146,6 +148,22 @@ export default function ChallengeActionWidget({
   const [agreed, setAgreed] = useState(Boolean(existingSubmissionUrl));
 
   const isSubmitted = Boolean(submittedUrl);
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (showTeamModal || showConfirmModal || showCancelJoinModal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showTeamModal, showConfirmModal, showCancelJoinModal]);
 
   // Handle Join Individu
   const handleJoinIndividual = async () => {
@@ -191,18 +209,16 @@ export default function ChallengeActionWidget({
     }
   };
 
-  // Handle Batal Bergabung (Cancel Entry)
-  const handleCancelJoin = async () => {
-    if (
-      !confirm(
-        "Apakah Anda yakin ingin membatalkan pendaftaran pada challenge ini?",
-      )
-    )
-      return;
+  // Handle Batal Bergabung (Cancel Entry) - open modal
+  const handleCancelJoin = () => {
+    setShowCancelJoinModal(true);
+  };
 
+  const confirmCancelJoin = async () => {
     setIsJoining(true);
     setActionError(null);
     setActionSuccess(null);
+    setShowCancelJoinModal(false);
 
     const res = await cancelJoinChallengeAction(challengeId);
     setIsJoining(false);
@@ -349,7 +365,7 @@ export default function ChallengeActionWidget({
         {state === "ACTIVE_NOT_JOINED" && (
           <div>
             <h3 className="text-[14.5px] font-bold text-gray-900 mb-1">
-              Opsi Opsi Bergabung
+              Opsi Bergabung
             </h3>
             <p className="text-[12px] text-gray-600 leading-[1.55] mb-3.5">
               Pilih mode pendaftaran untuk mulai mengerjakan tantangan ini.
@@ -689,167 +705,247 @@ export default function ChallengeActionWidget({
       </div>
 
       {/* ── Modal Pilih Tim (Khusus Ketua Tim) ────────────────── */}
-      {showTeamModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[18px] max-w-md w-full p-5 shadow-xl relative animate-in fade-in zoom-in duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <h3 className="text-[16px] font-bold text-gray-900 flex items-center gap-2">
-                <Users2 size={18} className="text-primary-500" />
-                Pilih Tim untuk Daftar
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowTeamModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="py-4 space-y-3">
-              {/* Notice Warning Khusus Ketua Tim */}
-              <div className="bg-[#FFF8E6] border border-[#FBE3B5] rounded-[12px] p-3 text-[12px] text-[#8C6210] flex items-start gap-2.5">
-                <AlertTriangle
-                  size={16}
-                  className="text-[#D9822B] flex-shrink-0 mt-0.5"
-                />
-                <p>
-                  <strong className="font-bold">Perhatian:</strong> Hanya Ketua
-                  Tim yang dapat mendaftarkan tim untuk kategori tim. Tim yang
-                  terpilih opsi-opsinya di bawah ini adalah tim yang mana Anda
-                  menjabat sebagai Ketua.
-                </p>
-              </div>
-
-              {captainTeams.length === 0 ? (
-                <div className="text-center py-5 bg-gray-50 border border-gray-200 rounded-[14px]">
-                  <p className="text-[13px] font-medium text-gray-700">
-                    Anda tidak memiliki tim aktif di mana Anda menjadi Ketua.
-                  </p>
-                  <p className="text-[11px] text-gray-500 mt-1">
-                    Buat tim baru di menu &quot;Tim Anda&quot; untuk mendaftar
-                    sebagai tim.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <label className="block text-[12px] font-bold text-gray-700">
-                    Pilih Tim Saya:
-                  </label>
-                  {captainTeams.map((team) => (
-                    <label
-                      key={team.id}
-                      className={`flex items-center justify-between p-3 rounded-[12px] border cursor-pointer transition-all ${
-                        selectedTeamId === team.id
-                          ? "border-primary-500 bg-primary-50/40 text-primary-900"
-                          : "border-gray-200 bg-white text-gray-800 hover:bg-gray-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <input
-                          type="radio"
-                          name="selected-team"
-                          value={team.id}
-                          checked={selectedTeamId === team.id}
-                          onChange={() => setSelectedTeamId(team.id)}
-                          className="accent-primary-500"
-                        />
-                        <div>
-                          <p className="text-[13px] font-bold">{team.name}</p>
-                          <p className="text-[10px] text-gray-500">
-                            {team.memberCount} anggota aktif
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-semibold px-2 py-0.5 bg-primary-100 text-primary-700 rounded-full">
-                        Ketua Tim
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
-              <button
-                type="button"
-                onClick={() => setShowTeamModal(false)}
-                className="h-9 px-4 rounded-full border border-gray-300 text-[12px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Batal
-              </button>
-              {captainTeams.length > 0 && (
+      {mounted &&
+        showTeamModal &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9998] bg-black/60 backdrop-blur-[2px] flex items-center justify-center p-4 overflow-y-auto"
+            onClick={() => setShowTeamModal(false)}
+          >
+            <div
+              className="bg-white rounded-[18px] max-w-md w-full p-5 shadow-2xl relative animate-in fade-in zoom-in duration-150 z-[9999] pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                <h3 className="text-[16px] font-bold text-gray-900 flex items-center gap-2">
+                  <Users2 size={18} className="text-primary-500" />
+                  Pilih Tim untuk Daftar
+                </h3>
                 <button
                   type="button"
-                  onClick={handleJoinTeam}
-                  disabled={isJoining}
-                  className="h-9 px-5 rounded-full bg-primary-500 hover:bg-primary-600 text-white text-[12px] font-bold transition-colors disabled:opacity-50"
+                  onClick={() => setShowTeamModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  {isJoining ? "Mendaftarkan..." : "Daftarkan Tim"}
+                  <X size={18} />
                 </button>
-              )}
+              </div>
+
+              <div className="py-4 space-y-3">
+                {/* Notice Warning Khusus Ketua Tim */}
+                <div className="bg-[#FFF8E6] border border-[#FBE3B5] rounded-[12px] p-3 text-[12px] text-[#8C6210] flex items-start gap-2.5">
+                  <AlertTriangle
+                    size={16}
+                    className="text-[#D9822B] flex-shrink-0 mt-0.5"
+                  />
+                  <p>
+                    <strong className="font-bold">Perhatian:</strong> Hanya Ketua
+                    Tim yang dapat mendaftarkan tim untuk kategori tim. Tim yang
+                    terpilih opsi-opsinya di bawah ini adalah tim yang mana Anda
+                    menjabat sebagai Ketua.
+                  </p>
+                </div>
+
+                {captainTeams.length === 0 ? (
+                  <div className="text-center py-5 bg-gray-50 border border-gray-200 rounded-[14px]">
+                    <p className="text-[13px] font-medium text-gray-700">
+                      Anda tidak memiliki tim aktif di mana Anda menjadi Ketua.
+                    </p>
+                    <p className="text-[11px] text-gray-500 mt-1">
+                      Buat tim baru di menu &quot;Tim Anda&quot; untuk mendaftar
+                      sebagai tim.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label className="block text-[12px] font-bold text-gray-700">
+                      Pilih Tim Saya:
+                    </label>
+                    {captainTeams.map((team) => (
+                      <label
+                        key={team.id}
+                        className={`flex items-center justify-between p-3 rounded-[12px] border cursor-pointer transition-all ${
+                          selectedTeamId === team.id
+                            ? "border-primary-500 bg-primary-50/40 text-primary-900"
+                            : "border-gray-200 bg-white text-gray-800 hover:bg-gray-50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <input
+                            type="radio"
+                            name="selected-team"
+                            value={team.id}
+                            checked={selectedTeamId === team.id}
+                            onChange={() => setSelectedTeamId(team.id)}
+                            className="accent-primary-500"
+                          />
+                          <div>
+                            <p className="text-[13px] font-bold">{team.name}</p>
+                            <p className="text-[10px] text-gray-500">
+                              {team.memberCount} anggota aktif
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 bg-primary-100 text-primary-700 rounded-full">
+                          Ketua Tim
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setShowTeamModal(false)}
+                  className="h-9 px-4 rounded-full border border-gray-300 text-[12px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Batal
+                </button>
+                {captainTeams.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleJoinTeam}
+                    disabled={isJoining}
+                    className="h-9 px-5 rounded-full bg-primary-500 hover:bg-primary-600 text-white text-[12px] font-bold transition-colors disabled:opacity-50"
+                  >
+                    {isJoining ? "Mendaftarkan..." : "Daftarkan Tim"}
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
 
       {/* ── Modal Konfirmasi Submission ────────────────────────── */}
-      {showConfirmModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[18px] max-w-md w-full p-5 shadow-xl relative animate-in fade-in zoom-in duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <h3 className="text-[16px] font-bold text-gray-900 flex items-center gap-2">
-                <AlertTriangle size={18} className="text-primary-500" />
-                Kirim Submission?
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowConfirmModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
+      {mounted &&
+        showConfirmModal &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9998] bg-black/60 backdrop-blur-[2px] flex items-center justify-center p-4 overflow-y-auto"
+            onClick={() => setShowConfirmModal(false)}
+          >
+            <div
+              className="bg-white rounded-[18px] max-w-md w-full p-5 shadow-2xl relative animate-in fade-in zoom-in duration-150 z-[9999] pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                <h3 className="text-[16px] font-bold text-gray-900 flex items-center gap-2">
+                  <AlertTriangle size={18} className="text-primary-500" />
+                  Kirim Submission?
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
 
-            <div className="py-4 space-y-3">
-              <p className="text-[13px] text-gray-700 leading-[1.6]">
-                Setelah submission dikirim, tautan Google Drive tidak dapat diubah lagi. Pastikan tautan sudah benar dan dapat diakses oleh seeker.
-              </p>
-
-              <div className="bg-[#FFF9E8] border border-[#FBE3B5] rounded-[12px] p-3 text-[12px] text-[#8C6210] flex items-start gap-2.5">
-                <AlertCircle size={16} className="text-[#D9822B] flex-shrink-0 mt-0.5" />
-                <p className="font-semibold">
-                  Peringatan: Pengiriman submission ini bersifat final.
+              <div className="py-4 space-y-3">
+                <p className="text-[13px] text-gray-700 leading-[1.6]">
+                  Setelah submission dikirim, tautan Google Drive tidak dapat diubah lagi. Pastikan tautan sudah benar dan dapat diakses oleh seeker.
                 </p>
+
+                <div className="bg-[#FFF9E8] border border-[#FBE3B5] rounded-[12px] p-3 text-[12px] text-[#8C6210] flex items-start gap-2.5">
+                  <AlertCircle size={16} className="text-[#D9822B] flex-shrink-0 mt-0.5" />
+                  <p className="font-semibold">
+                    Peringatan: Pengiriman submission ini bersifat final.
+                  </p>
+                </div>
+
+                <div className="p-2.5 rounded-[10px] bg-gray-50 border border-gray-200">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">Tautan yang akan dikirim:</p>
+                  <p className="text-[12px] font-medium text-primary-600 truncate">{inputUrl}</p>
+                </div>
               </div>
 
-              <div className="p-2.5 rounded-[10px] bg-gray-50 border border-gray-200">
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-0.5">Tautan yang akan dikirim:</p>
-                <p className="text-[12px] font-medium text-primary-600 truncate">{inputUrl}</p>
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmModal(false)}
+                  disabled={isSubmittingUrl}
+                  className="h-9 px-4 rounded-full border border-gray-300 text-[12px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmSubmit}
+                  disabled={isSubmittingUrl}
+                  className="h-9 px-5 rounded-full bg-primary-500 hover:bg-primary-600 text-white text-[12px] font-bold transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {isSubmittingUrl ? "Mengirim..." : "Ya, Kirim"}
+                </button>
               </div>
             </div>
+          </div>,
+          document.body,
+        )}
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
-              <button
-                type="button"
-                onClick={() => setShowConfirmModal(false)}
-                disabled={isSubmittingUrl}
-                className="h-9 px-4 rounded-full border border-gray-300 text-[12px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmSubmit}
-                disabled={isSubmittingUrl}
-                className="h-9 px-5 rounded-full bg-primary-500 hover:bg-primary-600 text-white text-[12px] font-bold transition-colors disabled:opacity-50 flex items-center gap-1.5"
-              >
-                {isSubmittingUrl ? "Mengirim..." : "Ya, Kirim"}
-              </button>
+      {/* ── Modal Batal Bergabung (Cancel Entry) ────────────────── */}
+      {mounted &&
+        showCancelJoinModal &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9998] bg-black/60 backdrop-blur-[2px] flex items-center justify-center p-4 overflow-y-auto"
+            onClick={() => setShowCancelJoinModal(false)}
+          >
+            <div
+              className="bg-white rounded-[18px] max-w-md w-full p-5 shadow-2xl relative animate-in fade-in zoom-in duration-150 z-[9999] pointer-events-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                <h3 className="text-[16px] font-bold text-gray-900 flex items-center gap-2">
+                  <Trash2 size={18} className="text-red-500" />
+                  Batal Bergabung Challenge?
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowCancelJoinModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="py-4 space-y-3">
+                <p className="text-[13px] text-gray-700 leading-[1.6]">
+                  Apakah Anda yakin ingin membatalkan pendaftaran pada challenge ini? Pendaftaran Anda akan dihapus dan Anda harus mendaftar ulang jika ingin berpartisipasi kembali.
+                </p>
+
+                <div className="bg-red-50 border border-red-200 rounded-[12px] p-3 text-[12px] text-red-700 flex items-start gap-2.5">
+                  <AlertTriangle size={16} className="text-red-600 flex-shrink-0 mt-0.5" />
+                  <p className="font-semibold">
+                    Peringatan: Pengiriman submission atau status partisipasi Anda pada challenge ini akan dibatalkan.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setShowCancelJoinModal(false)}
+                  disabled={isJoining}
+                  className="h-9 px-4 rounded-full border border-gray-300 text-[12px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmCancelJoin}
+                  disabled={isJoining}
+                  className="h-9 px-5 rounded-full bg-red-600 hover:bg-red-700 text-white text-[12px] font-bold transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {isJoining ? "Memproses..." : "Ya, Batal Bergabung"}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

@@ -46,6 +46,10 @@ export default async function ChallengeDetailPage({
 
   let isWinner = false;
 
+  let isFinalist = false;
+
+  let winnerRank: number | null = null;
+
   const supabase = await createClient();
 
   // ── Fetch Challenge detail from Supabase DB ───────────────
@@ -58,6 +62,7 @@ export default async function ChallengeDetailPage({
       name,
       description,
       thumbnail_path,
+      copyright_agreement_path,
       prize_pool,
       deadline,
       status,
@@ -254,6 +259,8 @@ export default async function ChallengeDetailPage({
             id,
             status,
             is_winner,
+            is_finalist,
+            winner_rank,
             participation_type,
 
             submissions (
@@ -296,6 +303,8 @@ export default async function ChallengeDetailPage({
                 challenge_id,
                 status,
                 is_winner,
+                is_finalist,
+                winner_rank,
                 participation_type,
                 team_id,
                 team_name_snapshot,
@@ -347,12 +356,13 @@ export default async function ChallengeDetailPage({
 
       let userEntryId: string | null = null;
       let entryStatus = "registered";
-      let isWinner = false;
 
       if (userParticipationState === "ACTIVE_JOINED_INDIVIDUAL" && indEntry) {
         userEntryId = indEntry.id;
         entryStatus = indEntry.status || "registered";
         isWinner = Boolean(indEntry.is_winner);
+        isFinalist = Boolean(indEntry.is_finalist || indEntry.status === "finalist");
+        winnerRank = indEntry.winner_rank ?? null;
       } else if (
         (userParticipationState === "ACTIVE_JOINED_TEAM_LEADER" ||
           userParticipationState === "ACTIVE_JOINED_TEAM_MEMBER") &&
@@ -366,6 +376,8 @@ export default async function ChallengeDetailPage({
           userEntryId = teamEntry.id;
           entryStatus = teamEntry.status || "registered";
           isWinner = Boolean(teamEntry.is_winner);
+          isFinalist = Boolean(teamEntry.is_finalist || teamEntry.status === "finalist");
+          winnerRank = teamEntry.winner_rank ?? null;
         }
       }
 
@@ -451,6 +463,7 @@ export default async function ChallengeDetailPage({
       description={dbCh.description || "Deskripsi tantangan belum tersedia."}
       heroStatus={heroStatus}
       thumbnailPath={dbCh.thumbnail_path}
+      copyrightAgreementPath={dbCh.copyright_agreement_path}
       objectives={objectives}
       requirements={requirements}
       criteria={criteria}
@@ -470,6 +483,8 @@ export default async function ChallengeDetailPage({
       isFullyJudged={isFullyJudged}
       entryStatus={entryStatus}
       isWinner={isWinner}
+      isFinalist={isFinalist}
+      winnerRank={winnerRank}
     />
   );
 }

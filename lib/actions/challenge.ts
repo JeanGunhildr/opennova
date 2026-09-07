@@ -70,6 +70,61 @@ const { data: publicUrlData } = supabase.storage
 return publicUrlData?.publicUrl || data.path;
 }
 
+/**
+ * Generate download URL for Copyright Agreement file.
+ */
+export async function getCopyrightUrlAction(
+  filePath: string | null | undefined,
+): Promise<{ success: boolean; url?: string; error?: string }> {
+  try {
+    if (!filePath || filePath.trim() === "") {
+      return {
+        success: false,
+        error: "Dokumen kesepakatan hak cipta tidak tersedia untuk tantangan ini.",
+      };
+    }
+
+    const trimmedPath = filePath.trim();
+
+    // If path is already a full URL, return directly
+    if (trimmedPath.startsWith("http://") || trimmedPath.startsWith("https://")) {
+      return { success: true, url: trimmedPath };
+    }
+
+    const supabase = await createClient();
+
+    // 1. Try public URL from "challenges" bucket
+    const { data: publicData } = supabase.storage
+      .from("challenges")
+      .getPublicUrl(trimmedPath);
+
+    if (publicData?.publicUrl) {
+      return { success: true, url: publicData.publicUrl };
+    }
+
+    // 2. Try signed URL fallback
+    const { data: signedData, error: signedError } = await supabase.storage
+      .from("challenges")
+      .createSignedUrl(trimmedPath, 3600);
+
+    if (signedError || !signedData?.signedUrl) {
+      console.error("Storage signed URL error:", signedError);
+      return {
+        success: false,
+        error: "Dokumen kesepakatan hak cipta tidak ditemukan di penyimpanan berkas.",
+      };
+    }
+
+    return { success: true, url: signedData.signedUrl };
+  } catch (err: any) {
+    console.error("getCopyrightUrlAction error:", err);
+    return {
+      success: false,
+      error: "Gagal mengambil dokumen kesepakatan hak cipta.",
+    };
+  }
+}
+
 // ============================================================
 // CREATE CHALLENGE
 // ============================================================
@@ -545,7 +600,11 @@ export async function countSolverActiveSlots(
       const ch = Array.isArray(entry.challenges)
         ? entry.challenges[0]
         : entry.challenges;
-      if (entry.status !== "eliminated" && ch?.status !== "completed") {
+      if (
+        entry.status !== "eliminated" &&
+        ch?.status !== "completed" &&
+        ch?.status !== "taken_down"
+      ) {
         activeEntryIds.add(entry.id);
       }
     }
@@ -555,7 +614,11 @@ export async function countSolverActiveSlots(
     const ch = Array.isArray(entry.challenges)
       ? entry.challenges[0]
       : entry.challenges;
-    if (entry.status !== "eliminated" && ch?.status !== "completed") {
+    if (
+      entry.status !== "eliminated" &&
+      ch?.status !== "completed" &&
+      ch?.status !== "taken_down"
+    ) {
       activeEntryIds.add(entry.id);
     }
   });
@@ -783,21 +846,7 @@ export async function joinChallengeAction(
     }
 
     // -------------------------------------------------------
-    // Team yang sudah locked tidak boleh didaftarkan lagi
-    // -------------------------------------------------------
-
-    if (team.is_locked) {
-      return {
-        success: false,
-        error: "Tim ini sudah terdaftar pada sebuah challenge.",
-      };
-    }
-
-    // -------------------------------------------------------
     // Ambil seluruh anggota team
-    //
-    // Jangan filter status karena membership ditentukan
-    // berdasarkan keberadaan row di team_members.
     // -------------------------------------------------------
 
     const { data: teamMembers, error: teamMembersError } =
@@ -817,9 +866,6 @@ export async function joinChallengeAction(
 
     // -------------------------------------------------------
     // Buat daftar seluruh user dalam team
-    //
-    // Captain dipastikan masuk walaupun tidak mempunyai
-    // row di team_members.
     // -------------------------------------------------------
 
     const memberIds = new Set<string>();
@@ -832,14 +878,20 @@ export async function joinChallengeAction(
 
     const userIds = Array.from(memberIds);
 
-    // Cek apakah ada anggota tim yang sudah mencapai 3 slot aktif
+    // Cek apakah ada anggota tim yang sudah mencapai 3 slot aktif (maks 3 per solver)
     for (const uId of userIds) {
       const memActiveSlots = await countSolverActiveSlots(supabase, uId);
       if (memActiveSlots >= 3) {
+        const { data: p } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", uId)
+          .maybeSingle();
+
+        const nameLabel = p?.full_name ? ` (${p.full_name})` : "";
         return {
           success: false,
-          error:
-            "Tim tidak dapat didaftarkan karena salah satu anggota tim sudah mencapai batas maksimal 3 challenge aktif.",
+          error: `Tim tidak dapat didaftarkan karena anggota tim${nameLabel} sudah mencapai batas maksimal 3 challenge aktif.`,
         };
       }
     }

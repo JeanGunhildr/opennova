@@ -11,8 +11,10 @@ import {
   Menu,
   X,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 import { OpenNovaLogoMark } from "@/component/landing/Logo";
+import { createClient } from "@/lib/supabase/client";
 
 interface NavItem {
   label: string;
@@ -39,9 +41,21 @@ const MOCK_ADMIN = {
 function SidebarContent({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const handleLogout = () => {
-    router.push("/admin/login");
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      onClose?.();
+      router.push("/admin/login");
+      router.refresh();
+    } catch (err) {
+      console.error("Admin logout error:", err);
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -129,10 +143,15 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
         </div>
         <button
           onClick={handleLogout}
-          className="w-full h-10 rounded-full text-[14px] font-semibold border border-gray-300 text-gray-700 hover:bg-white hover:border-gray-400 transition-colors inline-flex items-center justify-center gap-2"
+          disabled={isLoggingOut}
+          className="w-full h-10 rounded-full text-[14px] font-semibold border border-gray-300 text-gray-700 hover:bg-white hover:border-gray-400 transition-colors inline-flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <LogOut size={16} strokeWidth={2} />
-          Keluar
+          {isLoggingOut ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : (
+            <LogOut size={16} strokeWidth={2} />
+          )}
+          {isLoggingOut ? "Keluar..." : "Keluar"}
         </button>
       </div>
     </div>

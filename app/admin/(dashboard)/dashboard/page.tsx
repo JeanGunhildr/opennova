@@ -12,14 +12,16 @@ import AdminPageHeader from "@/component/admin/AdminPageHeader";
 import StatCard from "@/component/admin/StatCard";
 import ActiveChallengesTable from "@/component/admin/ActiveChallengesTable";
 
-import {
-  formatRupiah,
-  getDashboardSummary,
-} from "@/lib/data/admin";
+import { formatRupiah } from "@/lib/data/admin";
 
-import { getAdminChallenges } from "@/lib/data/admin-server";
+import {
+  getAdminChallenges,
+  getAdminDashboardSummary,
+} from "@/lib/data/admin-server";
 
 import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
@@ -61,9 +63,10 @@ export default async function AdminDashboardPage() {
   // Fetch dashboard data
   // ────────────────────────────────────────────────────────
 
-  const challenges = await getAdminChallenges();
-
-  const summary = getDashboardSummary();
+  const [challenges, summary] = await Promise.all([
+    getAdminChallenges(),
+    getAdminDashboardSummary(),
+  ]);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-[1440px] mx-auto">

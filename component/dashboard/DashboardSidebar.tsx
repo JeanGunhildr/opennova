@@ -61,7 +61,6 @@ const NAV_ITEMS: NavItem[] = [
     label: "Notifikasi",
     href: "/solver/notifications",
     Icon: Bell,
-    badge: 3,
   },
   {
     label: "Profil Anda",

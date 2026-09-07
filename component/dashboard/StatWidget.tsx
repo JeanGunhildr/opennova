@@ -1,12 +1,29 @@
-﻿import { TrendingUp, Trophy, ArrowRight } from "lucide-react";
+import { TrendingUp, Trophy, ArrowRight } from "lucide-react";
 
 type StatVariant = "balance" | "earnings" | "wins";
 
 interface StatWidgetProps {
   variant: StatVariant;
+  totalBalance?: number;
+  withdrawableBalance?: number;
+  totalEarnings?: number;
+  totalWins?: number;
 }
 
-function BalanceCard() {
+function formatRupiah(amount: number): string {
+  return `Rp ${amount.toLocaleString("id-ID")}`;
+}
+
+function BalanceCard({
+  totalBalance,
+  withdrawableBalance,
+}: {
+  totalBalance?: number;
+  withdrawableBalance?: number;
+}) {
+  const displayTotal = totalBalance !== undefined ? formatRupiah(totalBalance) : "Rp 0";
+  const displayWithdrawable = withdrawableBalance !== undefined ? formatRupiah(withdrawableBalance) : displayTotal;
+
   return (
     <div
       className="relative rounded-[16px] p-5 overflow-hidden min-h-[200px] flex flex-col justify-between"
@@ -27,27 +44,29 @@ function BalanceCard() {
       <div className="relative">
         <p className="text-[14px] text-gray-400 mb-1">Total Saldo</p>
         <p className="text-[28px] font-bold text-white tracking-tight">
-          Rp 71.000.000
+          {displayTotal}
         </p>
       </div>
 
       <div className="relative mt-4">
         <p className="text-[13px] text-gray-400 mb-1">Saldo Dapat Dicairkan</p>
         <p className="text-[22px] font-bold text-white tracking-tight">
-          Rp 50.000.000
+          {displayWithdrawable}
         </p>
       </div>
     </div>
   );
 }
 
-function EarningsCard() {
+function EarningsCard({ totalEarnings }: { totalEarnings?: number }) {
+  const displayEarnings = totalEarnings !== undefined ? formatRupiah(totalEarnings) : "Rp 0";
+
   return (
     <div className="bg-white border border-[#E2E3E5] rounded-[16px] p-5 min-h-[200px] flex flex-col justify-between shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
       <div>
         <p className="text-[14px] font-medium text-gray-600">Total Perolehan</p>
         <p className="text-[30px] font-bold text-gray-900 tracking-tight mt-1">
-          Rp 121.000.000
+          {displayEarnings}
         </p>
         <p className="text-[13px] text-gray-500 mt-0.5">Sepanjang waktu</p>
       </div>
@@ -55,14 +74,16 @@ function EarningsCard() {
       <div className="flex items-center gap-2 mt-4">
         <span className="flex items-center gap-1 bg-[#E6F4E8] text-[#15803D] text-[12px] font-semibold px-2.5 py-1 rounded-full">
           <TrendingUp size={13} strokeWidth={2} />
-          +12% bulan ini
+          Total akumulasi
         </span>
       </div>
     </div>
   );
 }
 
-function WinsCard() {
+function WinsCard({ totalWins }: { totalWins?: number }) {
+  const displayWins = totalWins !== undefined ? totalWins : 0;
+
   return (
     <div className="bg-white border border-[#E2E3E5] rounded-[16px] p-5 min-h-[200px] flex flex-col justify-between shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
       <div>
@@ -71,7 +92,7 @@ function WinsCard() {
           <div className="w-12 h-12 rounded-[12px] bg-secondary-100 flex items-center justify-center">
             <Trophy size={24} className="text-primary-500" strokeWidth={1.8} />
           </div>
-          <p className="text-[34px] font-bold text-gray-900 tracking-tight">5</p>
+          <p className="text-[34px] font-bold text-gray-900 tracking-tight">{displayWins}</p>
         </div>
         <p className="text-[13px] text-gray-500 mt-1">challenge berhasil dimenangkan</p>
       </div>
@@ -87,8 +108,23 @@ function WinsCard() {
   );
 }
 
-export default function StatWidget({ variant }: StatWidgetProps) {
-  if (variant === "balance")  return <BalanceCard />;
-  if (variant === "earnings") return <EarningsCard />;
-  return <WinsCard />;
+export default function StatWidget({
+  variant,
+  totalBalance,
+  withdrawableBalance,
+  totalEarnings,
+  totalWins,
+}: StatWidgetProps) {
+  if (variant === "balance") {
+    return (
+      <BalanceCard
+        totalBalance={totalBalance}
+        withdrawableBalance={withdrawableBalance}
+      />
+    );
+  }
+  if (variant === "earnings") {
+    return <EarningsCard totalEarnings={totalEarnings} />;
+  }
+  return <WinsCard totalWins={totalWins} />;
 }
