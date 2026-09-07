@@ -69,7 +69,7 @@ Melalui model tersebut, Opennova tidak hanya menjadi wadah pencarian solusi, tet
 
 ---
 
-## ✨ Fitur Unggulan (Solver)
+## ✨ Fitur Unggulan (Role Solver)
 
 ### Fitur Utama
 
@@ -77,18 +77,56 @@ Melalui model tersebut, Opennova tidak hanya menjadi wadah pencarian solusi, tet
 |----------|--------------|---------------|
 | **Jelajah** | Menampilkan berbagai Challenge aktif dari beragam kategori yang dapat ditemukan dan diikuti Solver sesuai minat dan keahliannya. | Membuka akses langsung terhadap permasalahan nyata industri dan peluang inovasi dari berbagai perusahaan. |
 | **Ruang Kerja** | Memusatkan Challenge yang sedang maupun telah diikuti beserta progress dan ringkasan informasinya. | Membantu Solver mengelola perjalanan inovasinya secara terstruktur dalam satu ruang kerja. |
-| **Detail Challenge** | Menyediakan informasi lengkap Challenge serta akses untuk bergabung, membatalkan keikutsertaan, dan mengirimkan solusi. | Menghadirkan alur end-to-end dari memahami permasalahan hingga mengajukan solusi kepada perusahaan. |
+| **Detail Challenge** | Menyediakan informasi lengkap mengenai challenge serta akses untuk bergabung/mengikuti challenge, berdiskusi langsung dengan seeker/pembuat challenge melalui fitur ruang diskusi, membatalkan keikutsertaan challenge, mengirimkan solusi, serta mendapatkan feedback penilaian inovasi dari seeker. | Menghadirkan alur end-to-end dari memahami permasalahan hingga mengajukan solusi kepada perusahaan. |
 | **Tim Anda** | Menyediakan wadah bagi Solver untuk membuat dan bergabung dalam tim ketika ingin mengerjakan Challenge secara berkelompok. | Memfasilitasi kolaborasi lintas keahlian untuk menghasilkan solusi yang lebih inovatif dan komprehensif. |
 | **Perolehan** | Mengelola reward Solver, termasuk melihat hadiah, mengakses sertifikat, dan menarik saldo ke rekening bank. | Mengubah kontribusi inovasi menjadi reward dan pencapaian yang terukur, sekaligus memperkuat portfolio Solver. |
 
 ### Fitur Tambahan
 
-- **Landing Page** - Halaman awal yang memperkenalkan Opennova, menjelaskan konsep dan manfaat platform, serta mengarahkan pengguna untuk mendaftar atau masuk sebagai Solver.
+- **Landing Page** - Halaman awal yang memperkenalkan Opennova, menjelaskan konsep dan keunggulan platform, serta mengarahkan pengguna untuk mendaftar atau masuk sebagai Solver.
 - **Popup Daftar & Popup Masuk** - Memudahkan pengguna melakukan registrasi dan login secara cepat tanpa harus berpindah halaman.
 - **Informasi Profil** - Menampilkan dan mengelola informasi pengguna yang relevan sebagai identitas serta mendukung kebutuhan partisipasi dalam platform.
 - **Notifikasi** - Memberikan informasi terbaru mengenai aktivitas, submission, reward, dan pembaruan penting lainnya agar pengguna tidak melewatkan informasi.
 
 ---
+
+## ✨ Fitur Unggulan (Role Seeker)
+
+### Fitur Utama
+
+| Fitur | Deskripsi | Keunggulan |
+|----------|--------------|---------------|
+| **Dashboard** | Menampilkan ringkasan seluruh aktivitas Seeker, seperti jumlah Challenge, Challenge aktif, total dana hadiah, detail Challenge, dan agenda terdekat. | Membantu Seeker memantau kondisi dan perkembangan Challenge dengan cepat dalam satu halaman. |
+| **Challenge Anda** | Menampilkan seluruh Challenge yang dibuat Seeker, serta menyediakan akses untuk membuat Challenge baru, melihat progress, dan mengelola Challenge. | Memudahkan perusahaan mengatur seluruh Challenge secara terpusat dan terstruktur. |
+| **Buat Challenge Baru** | Menyediakan form untuk mengisi informasi Challenge yang akan dibuat, dan melakukan pembayaran hadiah melalui Virtual Account sebelum Challenge dipublikasikan. | Membuat proses pembuatan Challenge menjadi lebih mudah dan terintegrasi, dari menentukan kebutuhan hingga siap dibuka untuk Solver. |
+| **Kelola Challenge** | Digunakan untuk mengelola Challenge yang telah dipublikasikan, mulai dari melihat dan menilai submission Solver, menjalankan tahap Penjurian Ahli, Pitching Final, dan Pengumuman Pemenang, menjawab pertanyaan di Ruang Diskusi, hingga memperbarui atau membatalkan Challenge. | Memastikan proses seleksi solusi berjalan terstruktur, sehingga Seeker dapat menemukan dan memilih solusi terbaik dari berbagai submission. |
+| **Legal & Dokumen** | Mengatur pilihan hak cipta inovasi antara Seeker dan Solver serta mengelola data dan berkas resmi untuk penerbitan sertifikat bagi Solver pemenang. | Memberikan kejelasan hak atas inovasi dan kelengkapan dokumen, sehingga proses kolaborasi lebih aman sesuai ketentuan hukum di Indonesia, serta tetap terdokumentasi dengan jelas. |
+
+### Fitur Tambahan
+
+- **Landing Page** - Halaman awal yang memperkenalkan Opennova, menjelaskan konsep dan keunggulan platform, serta mengarahkan pengguna untuk mendaftar atau masuk sebagai Seeker.
+- **Popup Daftar & Popup Masuk** - Memudahkan pengguna melakukan registrasi dan login secara cepat tanpa harus berpindah halaman.
+- **Popup Informasi Penilaian** - Menyediakan informasi lengkap mengenai teknis, aturan, dan alur penilaian submission Solver yang perlu dipahami oleh Seeker.
+- **Popup Informasi Pembayaran** - Menyediakan informasi mengenai minimal hadiah Challenge, biaya publikasi, alur pembayaran, serta ketentuan pengembalian dana apabila Challenge dibatalkan atau tidak disetujui oleh Admin.
+- **Popup Transfer Hadiah Via Virtual Account** - Menampilkan nomor Virtual Account yang digunakan Seeker untuk melakukan pembayaran hadiah saat membuat Challenge baru.
+- **Popup Pembatalan Challenge** - Menampilkan formulir konfirmasi pembatalan Challenge yang mencakup alasan pembatalan, nomor rekening untuk pengembalian dana, serta input judul Challenge sebagai verifikasi sebelum pembatalan dilakukan.
+- **Notifikasi** - Menampilkan berbagai pemberitahuan terkait aktivitas dan perkembangan Challenge, seperti submission baru, hasil penilaian, status Challenge, pembayaran, dan informasi penting lainnya.
+- **Informasi Profil** - Menampilkan informasi profil Seeker serta menyediakan akses untuk melihat dan mengelola data akun dan informasi perusahaan.
+
+---
+
+## ✨ Fitur Unggulan (Role Admin)
+
+### Fitur Utama
+
+| Fitur | Deskripsi | Keunggulan |
+|----------|--------------|---------------|
+| **Dashboard** | Menampilkan ringkasan kondisi dan aktivitas platform, meliputi total Solver, Seeker, Challenge aktif, pendapatan platform, serta dana escrow yang tertahan sebagai hadiah Challenge. Dashboard juga menyediakan daftar Challenge dengan status aktif, selesai, maupun yang telah di-takedown oleh Admin. | Memberikan pusat monitoring platform bagi Admin untuk melihat kondisi, aktivitas, serta aliran dana Opennova secara cepat dalam satu halaman. |
+| **Pengguna** | Menampilkan daftar Solver dan Seeker dalam bentuk tabel beserta informasi pengguna yang diperlukan untuk keperluan pemantauan dan administrasi platform. | Memudahkan Admin melakukan pengawasan dan pengelolaan seluruh pengguna dalam satu sistem terpusat sehingga ekosistem platform tetap terkontrol. |
+| **Sertifikat** | Mengelola seluruh kebutuhan sertifikat penghargaan Solver, mulai dari template sertifikat, data berkas otorisasi sertifikat setiap Seeker/perusahaan, hingga detail dan manajemen pemenang Challenge. Admin dapat mengunduh template, melengkapi data pemenang dan otorisasi perusahaan, kemudian mengunggah sertifikat kepada pemenang. | Menjamin proses pemberian sertifikat berjalan terstruktur, resmi, dan terdokumentasi, sekaligus memastikan penghargaan yang diterima Solver memiliki validitas dari perusahaan penyelenggara Challenge. |
+
+---
+
 
 ## 📸 Demo & Screenshot
 
@@ -126,7 +164,7 @@ Melalui model tersebut, Opennova tidak hanya menjadi wadah pencarian solusi, tet
   <img src="./screenshot/10-solver-earnings.png" alt="Solver - Earnings" width="800"/>
   <p><em>Perolehan - Menampilkan reward, sertifikat, dan saldo yang diperoleh Solver serta mendukung proses penarikan reward.</em></p>
 
-  <img src="./screenshot/11-solver-notifications.png" alt="Solver - Notifications" width="800"/>
+  <img src="./screenshot/11-solver-notifcations.png" alt="Solver - Notifications" width="800"/>
   <p><em>Notifikasi - Memberikan informasi terbaru mengenai Challenge, aktivitas, submission, reward, dan pembaruan penting lainnya.</em></p>
 
 </div>
@@ -188,7 +226,7 @@ Melalui model tersebut, Opennova tidak hanya menjadi wadah pencarian solusi, tet
   <p><em>Manajemen Pengguna - Mengelola dan memantau pengguna yang terdaftar sebagai Seeker maupun Solver.</em></p>
 
   <img src="./screenshot/23-admin-certifitcation.png" alt="Admin - Certification" width="800"/>
-  <p><em>Manajemen Sertifikasi - Mengelola proses verifikasi dan penerbitan sertifikat bagi Solver yang memperoleh penghargaan.</em></p>
+  <p><em>Manajemen Sertifikasi - Mengelola proses penerbitan sertifikat bagi Solver yang memperoleh penghargaan.</em></p>
 
 </div>
 
